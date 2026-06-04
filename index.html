@@ -195,7 +195,7 @@ select:focus,input:focus{border-color:var(--brown)}
         <div class="fr"><div class="fl">Résultats ressentis</div>
           <select id="m-resultats"><option value="">-- Choisir --</option><option value="positif">Positifs — continuer</option><option value="stagnation">Stagnation</option><option value="atteint">Objectif atteint !</option></select>
         </div>
-        <button class="btn-p" onclick="sauverMesures()">💾 Sauvegarder les mesures</button>
+        <button class="btn-p" id="btn-save-mesures" onclick="sauverMesures()">💾 Sauvegarder les mesures</button>
         <div class="succ" id="succ-mesures">✓ Mesures enregistrées !</div>
       </div>
       <div id="reco-card" class="card" style="display:none"><div class="st">Recommandation</div><div id="reco-content"></div></div>
@@ -454,6 +454,53 @@ function verifierSession(){
   } catch(e){}
   return false;
 }
+function editerMesure(clientIdx, mesureIdx){
+  const c = clients[parseInt(clientIdx)];
+  if(!c || !c.mesures || !c.mesures[mesureIdx]) return;
+  const m = c.mesures[mesureIdx];
+  // Fill form with existing values
+  const fields = ['poids','mg','mm','imc','meta','gv','cuisse','ventre','hanches','bras'];
+  fields.forEach(f => {
+    const el = document.getElementById('m-'+f);
+    if(el) el.value = m[f] || '';
+  });
+  if(document.getElementById('m-photo')) document.getElementById('m-photo').value = m.photo || '';
+  // Set date/heure
+  if(m.date){
+    const parts = m.date.split(' ');
+    if(parts[0]){
+      const dp = parts[0].split('/');
+      if(dp.length===3){
+        const dEl = document.getElementById('m-date');
+        if(dEl) dEl.value = dp[2]+'-'+dp[1]+'-'+dp[0];
+      }
+    }
+    if(parts[2]){
+      const hEl = document.getElementById('m-heure');
+      if(hEl) hEl.value = parts[2];
+    }
+  }
+  // Store edit index
+  const btnSave = document.getElementById('btn-save-mesures');
+  if(btnSave){
+    btnSave.setAttribute('data-edit-client', clientIdx);
+    btnSave.setAttribute('data-edit-mesure', mesureIdx);
+    btnSave.textContent = '💾 Modifier les mesures';
+    btnSave.style.background = '#633806';
+  }
+  // Scroll to form
+  document.getElementById('m-poids').scrollIntoView({behavior:'smooth', block:'center'});
+}
+
+function supprimerMesure(clientIdx, mesureIdx){
+  const c = clients[parseInt(clientIdx)];
+  if(!c || !c.mesures) return;
+  if(!confirm('Supprimer cette prise de mesures ?')) return;
+  c.mesures.splice(mesureIdx, 1);
+  save();
+  loadSuivi();
+}
+
 function deconnexion(){
   currentUser = null;
   localStorage.removeItem('s4f_session');
@@ -886,7 +933,7 @@ function loadSuivi(){
   const mesures = c.mesures || [];
   const mesuresCard = document.getElementById('mesures-histo-card');
   const mesuresContent = document.getElementById('mesures-histo-content');
-  if(mesuresCard && mesures.length > 1){
+  if(mesuresCard && mesures.length >= 1){
     mesuresCard.style.display = 'block';
     const premiere = mesures[0];
     const derniere = mesures[mesures.length-1];
@@ -899,28 +946,50 @@ function loadSuivi(){
       {key:'hanches', label:'Tour hanches', unit:'cm'},
       {key:'gv', label:'Graisse viscérale', unit:''}
     ];
-    mesuresContent.innerHTML = '<div style="font-size:11px;color:var(--text2);margin-bottom:.5rem">Comparaison : ' + premiere.date + ' → ' + derniere.date + '</div>' +
-      fields.filter(f => premiere[f.key] && derniere[f.key]).map(f => {
+    // Show comparison if more than 1 mesure
+    let html_m = '';
+    if(mesures.length > 1){
+      html_m += '<div style="font-size:12px;font-weight:600;color:var(--brown);margin-bottom:.5rem">Évolution ' + premiere.date.split(' ')[0] + ' → ' + derniere.date.split(' ')[0] + '</div>';
+      html_m += fields.filter(f => premiere[f.key] && derniere[f.key]).map(f => {
         const diff = parseFloat(derniere[f.key]) - parseFloat(premiere[f.key]);
         const diffStr = (diff > 0 ? '+' : '') + diff.toFixed(1);
         const color = (f.key==='poids'||f.key==='mg'||f.key==='ventre'||f.key==='cuisse'||f.key==='hanches'||f.key==='gv') ?
           (diff < 0 ? '#3B6D11' : diff > 0 ? '#791F1F' : 'var(--text2)') :
           (diff > 0 ? '#3B6D11' : diff < 0 ? '#791F1F' : 'var(--text2)');
-        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:.35rem 0;border-bottom:1px solid var(--border);font-size:12px">' +
+        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:.3rem 0;border-bottom:1px solid var(--border);font-size:12px">' +
           '<span style="color:var(--text2)">' + f.label + '</span>' +
-          '<div>' +
-            '<span>' + premiere[f.key] + ' → ' + derniere[f.key] + ' ' + f.unit + '</span>' +
-            '<span style="font-weight:700;color:' + color + ';margin-left:8px">' + diffStr + '</span>' +
-          '</div></div>';
-      }).join('') +
-      '<div style="margin-top:.75rem">' +
-        mesures.slice().reverse().map((m,i) => 
-          '<div style="font-size:11px;color:var(--text2);padding:2px 0">' + (i===0?'🕐 ':'') + m.date + ' — par ' + (m.coach||'—') + '</div>'
-        ).join('') +
+          '<div><span>' + premiere[f.key] + ' → ' + derniere[f.key] + ' ' + f.unit + '</span>' +
+          '<span style="font-weight:700;color:' + color + ';margin-left:8px">' + diffStr + '</span></div></div>';
+      }).join('');
+      html_m += '<div style="margin-top:.75rem;margin-bottom:.5rem;font-size:12px;font-weight:600;color:var(--brown)">Toutes les prises</div>';
+    }
+    // Show all mesures individually with edit button
+    const clientIdx = document.getElementById('sel-suivi').value;
+    html_m += mesures.slice().reverse().map((m, revI) => {
+      const realI = mesures.length - 1 - revI;
+      return '<div style="background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:.6rem;margin-bottom:6px">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem">' +
+          '<div style="font-size:12px;font-weight:600">' + m.date + '</div>' +
+          '<div style="display:flex;gap:4px">' +
+            '<button onclick="editerMesure(' + clientIdx + ',' + realI + ')" style="background:var(--brown-light);color:var(--brown);border:none;border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer">✏️ Modifier</button>' +
+            '<button onclick="supprimerMesure(' + clientIdx + ',' + realI + ')" style="background:var(--red-light);color:var(--red-text);border:1.5px solid var(--red-border);border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer">🗑️</button>' +
+          '</div>' +
+        '</div>' +
+        '<div style="font-size:11px;color:var(--text2);margin-bottom:.3rem">Par : ' + (m.coach||'—') + '</div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;font-size:11px">' +
+          (m.poids ? '<span>Poids: <strong>' + m.poids + ' kg</strong></span>' : '') +
+          (m.mg ? '<span>MG: <strong>' + m.mg + '%</strong></span>' : '') +
+          (m.mm ? '<span>MM: <strong>' + m.mm + '%</strong></span>' : '') +
+          (m.ventre ? '<span>Ventre: <strong>' + m.ventre + ' cm</strong></span>' : '') +
+          (m.cuisse ? '<span>Cuisse: <strong>' + m.cuisse + ' cm</strong></span>' : '') +
+          (m.hanches ? '<span>Hanches: <strong>' + m.hanches + ' cm</strong></span>' : '') +
+          (m.imc ? '<span>IMC: <strong>' + m.imc + '</strong></span>' : '') +
+          (m.gv ? '<span>GV: <strong>' + m.gv + '</strong></span>' : '') +
+          (m.bras ? '<span>Bras: <strong>' + m.bras + ' cm</strong></span>' : '') +
+        '</div>' +
       '</div>';
-  } else if(mesuresCard && mesures.length === 1){
-    mesuresCard.style.display = 'block';
-    mesuresContent.innerHTML = '<div style="font-size:13px;color:var(--text2)">1 prise de mesures enregistrée le ' + mesures[0].date + '</div>';
+    }).join('');
+    mesuresContent.innerHTML = html_m;
   }
 }
 
@@ -930,6 +999,10 @@ function sauverMesures(){
   const c = clients[parseInt(idx)];
   if(!c) return;
   if(!c.mesures) c.mesures = [];
+  // Check if we're in edit mode
+  const btn = document.getElementById('btn-save-mesures');
+  const editMesureIdx = btn ? btn.getAttribute('data-edit-mesure') : null;
+  const isEdit = editMesureIdx !== null && editMesureIdx !== '';
   const now = new Date();
   const mDateVal = document.getElementById('m-date').value;
   const mHeureVal = document.getElementById('m-heure').value;
@@ -941,7 +1014,7 @@ function sauverMesures(){
   } else {
     dateLabel = now.toLocaleDateString('fr-FR') + ' à ' + now.toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'});
   }
-  c.mesures.push({
+  const nouvelleMesure = {
     date: dateLabel,
     coach: currentUser ? currentUser.nom : '—',
     poids: document.getElementById('m-poids').value,
@@ -955,7 +1028,13 @@ function sauverMesures(){
     hanches: document.getElementById('m-hanches').value,
     bras: document.getElementById('m-bras').value,
     photo: document.getElementById('m-photo').value
-  });
+  };
+  if(isEdit){
+    c.mesures[parseInt(editMesureIdx)] = nouvelleMesure;
+    if(btn){ btn.removeAttribute('data-edit-client'); btn.removeAttribute('data-edit-mesure'); btn.textContent = '💾 Sauvegarder les mesures'; btn.style.background = ''; }
+  } else {
+    c.mesures.push(nouvelleMesure);
+  }
   const res = document.getElementById('m-resultats').value;
   c.dernierResultat = res;
   save();
