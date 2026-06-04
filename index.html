@@ -173,6 +173,10 @@ select:focus,input:focus{border-color:var(--brown)}
       <div class="card" id="abo-card"></div>
       <div class="card">
         <div class="st">Saisir les mesures</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.9rem">
+          <div class="fr" style="margin-bottom:0"><div class="fl">Date des mesures</div><input type="date" id="m-date" style="margin-bottom:0"></div>
+          <div class="fr" style="margin-bottom:0"><div class="fl">Heure</div><input type="time" id="m-heure" style="margin-bottom:0"></div>
+        </div>
         <div class="mgrid">
           <div class="fr"><div class="fl">Poids (kg)</div><input type="number" id="m-poids" step="0.1"></div>
           <div class="fr"><div class="fl">% Masse grasse</div><input type="number" id="m-mg" step="0.1"></div>
@@ -625,17 +629,21 @@ function loadClientProg(){
   if(statut && statut.retard >= 3){
     alerts += '<div class="alert alert-red">⚠️ ' + statut.retard + ' séances de retard !</div>';
   }
-  const seancesFaitesTotal = (c.historique||[]).length + (c.seancesOffertes||[]).reduce((s,o)=>s+(o.nb||1),0);
+  let seancesFaitesTotal = (c.historique||[]).length;
+  try { seancesFaitesTotal += (c.seancesOffertes||[]).reduce((s,o)=>s+(o&&o.nb?o.nb:1),0); } catch(e){}
   if(sem === 8 || seancesFaitesTotal % 8 === 0 && seancesFaitesTotal > 0){
     alerts += '<div class="alert alert-blue">📏 Fin de cycle ! Proposer une prise de mesures à cette cliente.</div>';
   }
   document.getElementById('client-alerts').innerHTML = alerts;
-  const seancesFaites = (c.historique||[]).length + (c.seancesOffertes||[]).length;
+  let seancesFaites = (c.historique||[]).length;
+  try { seancesFaites += (c.seancesOffertes||[]).reduce((s,o)=>s+(o&&o.nb?o.nb:1),0); } catch(e){}
   const seanceEnCours = seancesFaites + 1;
+  const tenueInfo = [c.taille?c.taille+'cm':'', c.tenue?'Tenue '+c.tenue:'', c.gilet?'Gilet '+c.gilet:''].filter(Boolean).join(' — ');
   document.getElementById('sem-indicator').innerHTML =
     '<div>' +
       '<div class="sem-label">Semaine ' + sem + ' / 8 — Réglages ' + semLabel + '</div>' +
       '<div class="sem-sub">' + c.nom + ' — ' + objLabel + '</div>' +
+      (tenueInfo ? '<div class="sem-sub" style="margin-top:2px">👕 ' + tenueInfo + '</div>' : '') +
       (tenueInfo ? '<div class="sem-sub" style="margin-top:2px">👕 ' + tenueInfo + '</div>' : '') +
       '<div style="margin-top:4px;font-size:12px;background:rgba(255,255,255,0.15);border-radius:6px;padding:3px 8px;display:inline-block">' +
         seancesFaites + ' séance' + (seancesFaites>1?'s':'') + ' validée' + (seancesFaites>1?'s':'') +
@@ -817,8 +825,22 @@ function supprimerClient(idx){
 function loadSuivi(){
   const idx = document.getElementById('sel-suivi').value;
   const content = document.getElementById('suivi-content');
+  // Vider les champs mesures quand on change de client
+  ['m-poids','m-mg','m-mm','m-imc','m-meta','m-gv','m-cuisse','m-ventre','m-hanches','m-bras'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.value = '';
+  });
+  const mp = document.getElementById('m-photo'); if(mp) mp.value = '';
+  const mr = document.getElementById('m-resultats'); if(mr) mr.value = '';
+  document.getElementById('reco-card').style.display = 'none';
   if(!idx){ content.style.display='none'; return; }
   content.style.display = 'block';
+  // Pre-fill date/heure with now
+  const nowS = new Date();
+  const dateEl = document.getElementById('m-date');
+  const heureEl = document.getElementById('m-heure');
+  if(dateEl && !dateEl.value) dateEl.value = nowS.toISOString().slice(0,10);
+  if(heureEl && !heureEl.value) heureEl.value = nowS.toTimeString().slice(0,5);
   const c = clients[parseInt(idx)];
   if(!c) return;
   const statut = getStatutSeances(c);
@@ -909,8 +931,18 @@ function sauverMesures(){
   if(!c) return;
   if(!c.mesures) c.mesures = [];
   const now = new Date();
+  const mDateVal = document.getElementById('m-date').value;
+  const mHeureVal = document.getElementById('m-heure').value;
+  let dateLabel;
+  if(mDateVal){
+    const parts = mDateVal.split('-');
+    const dateStr = parts[2]+'/'+parts[1]+'/'+parts[0];
+    dateLabel = dateStr + (mHeureVal ? ' à ' + mHeureVal : '');
+  } else {
+    dateLabel = now.toLocaleDateString('fr-FR') + ' à ' + now.toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'});
+  }
   c.mesures.push({
-    date: now.toLocaleDateString('fr-FR') + ' à ' + now.toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'}),
+    date: dateLabel,
     coach: currentUser ? currentUser.nom : '—',
     poids: document.getElementById('m-poids').value,
     mg: document.getElementById('m-mg').value,
@@ -929,6 +961,17 @@ function sauverMesures(){
   save();
   document.getElementById('succ-mesures').style.display = 'block';
   setTimeout(() => document.getElementById('succ-mesures').style.display='none', 3000);
+  // Vider les champs après enregistrement
+  ['m-poids','m-mg','m-mm','m-imc','m-meta','m-gv','m-cuisse','m-ventre','m-hanches','m-bras'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.value = '';
+  });
+  document.getElementById('m-photo').value = '';
+  document.getElementById('m-resultats').value = '';
+  // Reset date/heure to now
+  const nowR = new Date();
+  const dEl = document.getElementById('m-date'); if(dEl) dEl.value = nowR.toISOString().slice(0,10);
+  const hEl = document.getElementById('m-heure'); if(hEl) hEl.value = nowR.toTimeString().slice(0,5);
   const reco = document.getElementById('reco-card');
   const recoContent = document.getElementById('reco-content');
   reco.style.display = 'block';
