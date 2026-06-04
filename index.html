@@ -98,7 +98,13 @@ select:focus,input:focus{border-color:var(--brown)}
   <div class="sec active" id="sec-prog">
     <div class="card">
       <div class="st">Lancer une séance</div>
-      <div class="fr"><div class="fl">Client</div><select id="sel-client" onchange="loadClientProg()"><option value="">-- Choisir un client --</option></select></div>
+      <div class="fr"><div class="fl">Client</div>
+        <div style="position:relative">
+          <input type="text" id="search-client-prog" placeholder="Tapez le nom du client..." oninput="rechercherClientProg()" autocomplete="off" style="border-radius:var(--radius-sm)">
+          <div id="results-client-prog" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--card);border:1.5px solid var(--brown);border-radius:var(--radius-sm);z-index:100;max-height:200px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,0.1)"></div>
+        </div>
+        <input type="hidden" id="sel-client">
+      </div>
       <div id="client-alerts"></div>
       <div id="prog-auto" style="display:none">
         <div class="sem-indicator" id="sem-indicator"></div>
@@ -155,7 +161,13 @@ select:focus,input:focus{border-color:var(--brown)}
   <div class="sec" id="sec-suivi">
     <div class="card">
       <div class="st">Suivi et mesures</div>
-      <div class="fr"><div class="fl">Client</div><select id="sel-suivi" onchange="loadSuivi()"><option value="">-- Choisir un client --</option></select></div>
+      <div class="fr"><div class="fl">Client</div>
+        <div style="position:relative">
+          <input type="text" id="search-client-suivi" placeholder="Tapez le nom du client..." oninput="rechercherClientSuivi()" autocomplete="off" style="border-radius:var(--radius-sm)">
+          <div id="results-client-suivi" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--card);border:1.5px solid var(--brown);border-radius:var(--radius-sm);z-index:100;max-height:200px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,0.1)"></div>
+        </div>
+        <input type="hidden" id="sel-suivi">
+      </div>
     </div>
     <div id="suivi-content" style="display:none">
       <div class="card" id="abo-card"></div>
@@ -504,18 +516,78 @@ function nav(id, btn){
 }
 
 function refreshSelects(){
-  const opts = ['<option value="">-- Choisir un client --</option>']
-    .concat(clients.map((c,i) => {
-      const s = getStatutSeances(c);
-      const icon = getStatutIcon(s);
-      const sf = (c.historique||[]).length + (c.seancesOffertes||[]).length;
-      return '<option value="' + i + '">' + icon + ' ' + c.nom + ' — Sem.' + (c.semaine||1) + '/8 — ' + sf + ' séance' + (sf>1?'s':'') + '</option>';
-    })).join('');
-  ['sel-client','sel-suivi'].forEach(id => {
-    const el = document.getElementById(id);
-    if(el) el.innerHTML = opts;
+  // Keep hidden fields in sync - no longer needed for dropdowns
+  // but kept for compatibility
+}
+
+function afficherResultatsRecherche(query, containerId, hiddenId){
+  const container = document.getElementById(containerId);
+  if(!container) return;
+  const q = (query||'').toLowerCase().trim();
+  if(!q){ container.style.display='none'; return; }
+  const filtered = clients.map((c,i) => ({c,i})).filter(({c}) => c.nom && c.nom.toLowerCase().includes(q));
+  if(!filtered.length){ container.style.display='none'; return; }
+  container.style.display = 'block';
+  container.innerHTML = filtered.map(({c,i}) => {
+    const s = getStatutSeances(c);
+    const icon = getStatutIcon(s);
+    const sf = (c.historique||[]).length + (c.seancesOffertes||[]).length;
+    const ligne = '<strong>' + icon + ' ' + c.nom + '</strong><span style="color:var(--text2);font-size:11px;margin-left:8px">Sem.' + (c.semaine||1) + '/8 — ' + sf + ' séance' + (sf>1?'s':'') + '</span>';
+    return '<div data-idx="' + i + '" data-hidden="' + hiddenId + '" class="search-result-item" style="padding:.6rem 1rem;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px">' + ligne + '</div>';
+  }).join('');
+  // Add click handlers
+  container.querySelectorAll('.search-result-item').forEach(function(el){
+    el.addEventListener('mouseover', function(){ this.style.background='var(--brown-light)'; });
+    el.addEventListener('mouseout', function(){ this.style.background=''; });
+    el.addEventListener('click', function(){
+      const idx = parseInt(this.getAttribute('data-idx'));
+      const hid = this.getAttribute('data-hidden');
+      selectionnerClient(idx, hid);
+    });
   });
 }
+
+function selectionnerClient(idx, hiddenId){
+  const c = clients[idx];
+  if(!c) return;
+  // Close dropdown
+  const containerId = hiddenId === 'sel-client' ? 'results-client-prog' : 'results-client-suivi';
+  const container = document.getElementById(containerId);
+  if(container) container.style.display = 'none';
+  // Set hidden value
+  document.getElementById(hiddenId).value = idx;
+  // Update input display
+  const inputId = hiddenId === 'sel-client' ? 'search-client-prog' : 'search-client-suivi';
+  const inputEl = document.getElementById(inputId);
+  if(inputEl) inputEl.value = c.nom;
+  // Trigger callback
+  if(hiddenId === 'sel-client') loadClientProg();
+  if(hiddenId === 'sel-suivi') loadSuivi();
+}
+
+function rechercherClientProg(){
+  const q = document.getElementById('search-client-prog').value;
+  if(!q){ document.getElementById('sel-client').value = ''; document.getElementById('prog-auto').style.display='none'; document.getElementById('prog-result').style.display='none'; }
+  afficherResultatsRecherche(q, 'results-client-prog', 'sel-client', loadClientProg);
+}
+
+function rechercherClientSuivi(){
+  const q = document.getElementById('search-client-suivi').value;
+  if(!q){ document.getElementById('sel-suivi').value = ''; document.getElementById('suivi-content').style.display='none'; }
+  afficherResultatsRecherche(q, 'results-client-suivi', 'sel-suivi', loadSuivi);
+}
+
+// Close dropdowns when clicking outside
+document.addEventListener('click', function(e){
+  if(!e.target.closest('#results-client-prog') && !e.target.matches('#search-client-prog')){
+    const el = document.getElementById('results-client-prog');
+    if(el) el.style.display='none';
+  }
+  if(!e.target.closest('#results-client-suivi') && !e.target.matches('#search-client-suivi')){
+    const el = document.getElementById('results-client-suivi');
+    if(el) el.style.display='none';
+  }
+});
 
 // ========== ONGLET SÉANCE ==========
 function loadClientProg(){
@@ -646,6 +718,8 @@ function validerSeance(){
   document.getElementById('prog-auto').style.display = 'none';
   document.getElementById('client-alerts').innerHTML = '';
   document.getElementById('sel-client').value = '';
+  const scp = document.getElementById('search-client-prog');
+  if(scp) scp.value = '';
   const msg = document.createElement('div');
   msg.className = 'alert alert-green';
   msg.style.marginTop = '.5rem';
