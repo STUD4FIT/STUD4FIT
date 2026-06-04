@@ -298,6 +298,8 @@ window.addEventListener('DOMContentLoaded', function() {
   if(lockLogo) lockLogo.src = LOGO_B64;
   const headerLogo = document.getElementById('header-logo');
   if(headerLogo) headerLogo.src = LOGO_B64;
+  // Auto-login if session still valid
+  verifierSession();
 });
 
 
@@ -388,26 +390,45 @@ function importerDonnees(){
 }
 
 // ========== CONNEXION ==========
+function ouvrirSession(coach){
+  currentUser = coach;
+  document.getElementById('lock-screen').style.display = 'none';
+  document.querySelector('.app').style.display = 'block';
+  document.querySelectorAll('.admin-only').forEach(el => {
+    el.style.display = coach.role === 'admin' ? '' : 'none';
+  });
+  document.getElementById('user-indicator').textContent = (coach.role === 'admin' ? '👑 ' : '💪 ') + coach.nom;
+  // Save session for 1 hour
+  const session = {coachId: coach.id, expiry: Date.now() + 60*60*1000};
+  localStorage.setItem('s4f_session', JSON.stringify(session));
+  loadFromSheets();
+}
+
 function verifierCode(){
   const code = document.getElementById('lock-code').value;
   const coach = coachs.find(c => c.code === code);
   if(coach){
-    currentUser = coach;
-    document.getElementById('lock-screen').style.display = 'none';
-    document.querySelector('.app').style.display = 'block';
-    document.querySelectorAll('.admin-only').forEach(el => {
-      el.style.display = coach.role === 'admin' ? '' : 'none';
-    });
-    document.getElementById('user-indicator').textContent = (coach.role === 'admin' ? '👑 ' : '💪 ') + coach.nom;
-    loadFromSheets();
+    ouvrirSession(coach);
   } else {
     document.getElementById('lock-error').style.display = 'block';
     document.getElementById('lock-code').value = '';
     setTimeout(() => document.getElementById('lock-error').style.display='none', 3000);
   }
 }
+
+function verifierSession(){
+  try {
+    const session = JSON.parse(localStorage.getItem('s4f_session') || 'null');
+    if(session && session.expiry > Date.now()){
+      const coach = coachs.find(c => c.id === session.coachId);
+      if(coach){ ouvrirSession(coach); return true; }
+    }
+  } catch(e){}
+  return false;
+}
 function deconnexion(){
   currentUser = null;
+  localStorage.removeItem('s4f_session');
   document.getElementById('lock-screen').style.display = 'flex';
   document.querySelector('.app').style.display = 'none';
   document.getElementById('lock-code').value = '';
