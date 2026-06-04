@@ -102,6 +102,14 @@ select:focus,input:focus{border-color:var(--brown)}
       <div id="client-alerts"></div>
       <div id="prog-auto" style="display:none">
         <div class="sem-indicator" id="sem-indicator"></div>
+        <div class="fr"><div class="fl">Changer le programme pour cette séance</div>
+          <select id="prog-override" onchange="changerProgramme()">
+            <option value="">-- Programme actuel --</option>
+            <option value="poids">Perte de poids</option>
+            <option value="muscle">Renforcement musculaire</option>
+            <option value="visceral">Ventre viscéral</option>
+          </select>
+        </div>
         <div class="fr"><div class="fl">Massage de fin</div>
           <select id="sel-massage">
             <option value="standard">Drainage standard — 6-8 Hz / 150-200 µs</option>
@@ -197,6 +205,14 @@ select:focus,input:focus{border-color:var(--brown)}
       </div>
       <div class="fr"><div class="fl">Programme et résultats attendus</div>
         <div id="prog-suggere"><span style="color:var(--text2)">— remplissez le profil —</span></div>
+      </div>
+      <div class="fr"><div class="fl">Programme choisi (vous pouvez modifier la suggestion)</div>
+        <select id="n-objectif-override" onchange="afficherSuggestion()">
+          <option value="">-- Suivre la suggestion --</option>
+          <option value="poids">Perte de poids</option>
+          <option value="muscle">Renforcement musculaire</option>
+          <option value="visceral">Ventre viscéral</option>
+        </select>
       </div>
       <div class="fr"><div class="fl">Abonnement souscrit</div>
         <select id="n-abo">
@@ -504,6 +520,40 @@ function loadClientProg(){
   document.getElementById('prog-auto').style.display = 'block';
 }
 
+function changerProgramme(){
+  const override = document.getElementById('prog-override').value;
+  const idx = document.getElementById('sel-client').value;
+  if(!idx || !override) return;
+  const c = clients[parseInt(idx)];
+  if(!c) return;
+  // Save old programme info
+  if(!c.changementsProgramme) c.changementsProgramme = [];
+  c.changementsProgramme.push({
+    date: new Date().toLocaleDateString('fr-FR'),
+    ancienProg: c.objectif,
+    nouveauProg: override,
+    coach: currentUser ? currentUser.nom : '—'
+  });
+  // Change programme and reset semaine
+  c.objectif = override;
+  c.semaine = 1;
+  save();
+  // Update indicator
+  const sem = 1;
+  const semLabel = 'S1-2';
+  const objLabel = override==='poids' ? 'Perte de poids' : override==='muscle' ? 'Renforcement musculaire' : 'Ventre viscéral';
+  document.getElementById('sem-indicator').innerHTML =
+    '<div><div class="sem-label">Semaine 1 / 8 — Réglages S1-2</div>' +
+    '<div class="sem-sub">' + c.nom + ' — ' + objLabel + ' (programme changé)</div></div>' +
+    '<div style="text-align:right"><div style="font-size:18px;font-weight:700">0%</div>' +
+    '<div class="sem-sub">nouveau départ</div></div>';
+  // Reset override selector
+  document.getElementById('prog-override').value = '';
+  // Show confirmation
+  const alerts = document.getElementById('client-alerts');
+  alerts.innerHTML = '<div class="alert alert-green">✅ Programme changé vers ' + objLabel + ' — reprise à la semaine 1</div>';
+}
+
 function afficherProg(){
   const idx = document.getElementById('sel-client').value;
   if(idx === '') return;
@@ -717,7 +767,13 @@ function sauverMesures(){
   else if(res === 'stagnation') html += '<div class="alert alert-orange">⚠️ Stagnation — vérifier alimentation, hydratation et sommeil.</div>';
   else if(res === 'atteint'){
     const next = c.objectif==='poids' ? 'Renforcement Musculaire' : c.objectif==='visceral' ? 'Perte de Poids' : 'Maintien';
-    html += '<div class="alert alert-green">🎯 Objectif atteint ! Programme suivant : <strong>' + next + '</strong></div>';
+    html += '<div class="alert alert-green">🎯 Objectif atteint ! Programme suivant recommandé : <strong>' + next + '</strong><br>' +
+      '<small>Vous pouvez changer le programme dans la fiche client (bouton ✏️)</small></div>';
+  }
+  // Check history of programme changes
+  if((c.changementsProgramme||[]).length > 0){
+    const lastChange = c.changementsProgramme[c.changementsProgramme.length-1];
+    html += '<div class="alert alert-blue" style="margin-top:.5rem">ℹ️ Dernier changement de programme : ' + lastChange.ancienProg + ' → ' + lastChange.nouveauProg + ' le ' + lastChange.date + '</div>';
   }
   recoContent.innerHTML = html || '<div style="font-size:13px;color:var(--text2)">Sélectionnez les résultats ressentis.</div>';
   loadSuivi();
@@ -866,7 +922,10 @@ function ajouterClient(){
     alert('Merci de remplir tous les champs obligatoires.');
     return;
   }
-  const objectif = graisse==='viscerale' ? 'visceral' : graisse==='generale' ? 'poids' : 'muscle';
+  // Check if user overrode the programme suggestion
+  const overrideEl = document.getElementById('n-objectif-override');
+  const override = overrideEl ? overrideEl.value : '';
+  const objectif = override || (graisse==='viscerale' ? 'visceral' : graisse==='generale' ? 'poids' : 'muscle');
   const zone = document.getElementById('n-zone').value || '';
   const historique = [];
   document.querySelectorAll('.seance-date-item').forEach((el, i) => {
@@ -904,6 +963,8 @@ function resetForm(){
   document.getElementById('abos-precedents-container').innerHTML = '';
   document.getElementById('prog-suggere').innerHTML = '<span style="color:var(--text2)">— remplissez le profil —</span>';
   document.getElementById('zone-prioritaire').style.display = 'none';
+  const oo = document.getElementById('n-objectif-override');
+  if(oo) oo.value = '';
 }
 
 function editClient(idx){
