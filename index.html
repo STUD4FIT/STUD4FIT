@@ -923,17 +923,23 @@ function loadSuivi(){
   const histo = c.historique || [];
   if(histo.length){
     document.getElementById('histo-card').style.display = 'block';
-    document.getElementById('histo-content').innerHTML = histo.slice().reverse().slice(0,8).map(h =>
-      '<div style="display:flex;justify-content:space-between;padding:.4rem 0;border-bottom:1px solid var(--border);font-size:12px">' +
-      '<span style="color:var(--text2)">' + h.date + ' — ' + (h.coach||'—') + '</span>' +
-      '<span style="font-weight:600">Semaine ' + h.semaine + '</span></div>'
-    ).join('');
+    document.getElementById('histo-content').innerHTML = 
+      '<div style="max-height:300px;overflow-y:auto">' +
+      histo.slice().reverse().map(h =>
+        '<div style="display:flex;justify-content:space-between;padding:.4rem 0;border-bottom:1px solid var(--border);font-size:12px">' +
+        '<span style="color:var(--text2)">' + h.date + ' — ' + (h.coach||'—') + '</span>' +
+        '<span style="font-weight:600">Semaine ' + h.semaine + '</span></div>'
+      ).join('') +
+      '</div>' +
+      '<div style="font-size:11px;color:var(--text2);margin-top:4px;text-align:right">' + histo.length + ' séance' + (histo.length>1?'s':'') + ' au total</div>';
   }
   // Show mesures history
   const mesures = c.mesures || [];
   const mesuresCard = document.getElementById('mesures-histo-card');
   const mesuresContent = document.getElementById('mesures-histo-content');
-  if(mesuresCard && mesures.length >= 1){
+  if(mesuresCard){
+    mesuresCard.style.display = mesures.length >= 1 ? 'block' : 'none';
+  if(mesures.length >= 1){
     mesuresCard.style.display = 'block';
     const premiere = mesures[0];
     const derniere = mesures[mesures.length-1];
@@ -990,7 +996,7 @@ function loadSuivi(){
       '</div>';
     }).join('');
     mesuresContent.innerHTML = html_m;
-  }
+  }}
 }
 
 function sauverMesures(){
