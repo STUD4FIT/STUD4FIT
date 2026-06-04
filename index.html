@@ -617,9 +617,17 @@ function loadClientProg(){
     alerts += '<div class="alert alert-blue">📏 Rappel : prendre les mesures à la prochaine séance !</div>';
   }
   document.getElementById('client-alerts').innerHTML = alerts;
+  const seancesFaites = (c.historique||[]).length + (c.seancesOffertes||[]).length;
+  const seanceEnCours = seancesFaites + 1;
   document.getElementById('sem-indicator').innerHTML =
-    '<div><div class="sem-label">Semaine ' + sem + ' / 8 — Réglages ' + semLabel + '</div>' +
-    '<div class="sem-sub">' + c.nom + ' — ' + objLabel + '</div></div>' +
+    '<div>' +
+      '<div class="sem-label">Semaine ' + sem + ' / 8 — Réglages ' + semLabel + '</div>' +
+      '<div class="sem-sub">' + c.nom + ' — ' + objLabel + '</div>' +
+      '<div style="margin-top:4px;font-size:12px;background:rgba(255,255,255,0.15);border-radius:6px;padding:3px 8px;display:inline-block">' +
+        seancesFaites + ' séance' + (seancesFaites>1?'s':'') + ' validée' + (seancesFaites>1?'s':'') +
+        ' — Séance ' + seanceEnCours + ' en cours' +
+      '</div>' +
+    '</div>' +
     '<div style="text-align:right"><div style="font-size:18px;font-weight:700">' + pct + '%</div>' +
     '<div class="sem-sub">progression</div></div>';
   document.getElementById('prog-auto').style.display = 'block';
