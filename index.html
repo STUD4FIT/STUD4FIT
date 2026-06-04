@@ -570,7 +570,24 @@ function nav(id, btn){
   document.querySelectorAll('.nb').forEach(b => b.classList.remove('active'));
   document.getElementById('sec-' + id).classList.add('active');
   btn.classList.add('active');
-  if(id === 'prog' || id === 'suivi') refreshSelects();
+  if(id === 'prog'){
+    const sp = document.getElementById('search-client-prog');
+    if(sp) sp.value = '';
+    const rp = document.getElementById('results-client-prog');
+    if(rp) rp.style.display = 'none';
+    document.getElementById('sel-client').value = '';
+    document.getElementById('client-alerts').innerHTML = '';
+    document.getElementById('prog-auto').style.display = 'none';
+    document.getElementById('prog-result').style.display = 'none';
+  }
+  if(id === 'suivi'){
+    const ss = document.getElementById('search-client-suivi');
+    if(ss) ss.value = '';
+    const rs = document.getElementById('results-client-suivi');
+    if(rs) rs.style.display = 'none';
+    document.getElementById('sel-suivi').value = '';
+    document.getElementById('suivi-content').style.display = 'none';
+  }
   if(id === 'clients'){
     document.getElementById('search-clients').value = '';
     renderClients('');
@@ -797,6 +814,7 @@ function validerSeance(){
   document.getElementById('sel-client').value = '';
   const scp = document.getElementById('search-client-prog');
   if(scp) scp.value = '';
+  document.getElementById('results-client-prog').style.display = 'none';
   const msg = document.createElement('div');
   msg.className = 'alert alert-green';
   msg.style.marginTop = '.5rem';
