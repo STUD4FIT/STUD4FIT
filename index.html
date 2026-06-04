@@ -196,6 +196,7 @@ select:focus,input:focus{border-color:var(--brown)}
       </div>
       <div id="reco-card" class="card" style="display:none"><div class="st">Recommandation</div><div id="reco-content"></div></div>
       <div id="histo-card" class="card" style="display:none"><div class="st">Historique des séances</div><div id="histo-content"></div></div>
+      <div id="mesures-histo-card" class="card" style="display:none"><div class="st">Évolution des mesures</div><div id="mesures-histo-content"></div></div>
     </div>
   </div>
 
@@ -204,9 +205,18 @@ select:focus,input:focus{border-color:var(--brown)}
       <div class="st" id="form-titre">Nouveau client</div>
       <input type="hidden" id="edit-idx" value="">
       <div class="fr"><div class="fl">Prénom et nom</div><input type="text" id="n-nom" placeholder="ex: Caroline Martin"></div>
-      <div class="fr"><div class="fl">Âge</div><input type="number" id="n-age" min="18" max="90" oninput="afficherSuggestion()"></div>
+      <div class="fr"><div class="fl">Date de naissance</div><input type="date" id="n-age" oninput="afficherSuggestion()"></div>
       <div class="fr"><div class="fl">Sexe</div><select id="n-sexe" onchange="afficherSuggestion()"><option value="">-- Choisir --</option><option value="femme">Femme</option><option value="homme">Homme</option></select></div>
       <div class="fr"><div class="fl">Niveau d'activité</div><select id="n-niveau" onchange="afficherSuggestion()"><option value="">-- Choisir --</option><option value="actif">Actif</option><option value="peu-actif">Peu actif</option><option value="sedentaire">Sédentaire</option></select></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+        <div class="fr"><div class="fl">Taille (cm)</div><input type="number" id="n-taille" placeholder="ex: 168" min="140" max="210"></div>
+        <div class="fr"><div class="fl">Taille tenue</div>
+          <select id="n-tenue"><option value="">—</option><option value="XS">XS</option><option value="S">S</option><option value="M">M</option><option value="L">L</option><option value="XL">XL</option><option value="XXL">XXL</option></select>
+        </div>
+        <div class="fr"><div class="fl">Taille gilet</div>
+          <select id="n-gilet"><option value="">—</option><option value="XS">XS</option><option value="S">S</option><option value="M">M</option><option value="L">L</option><option value="XL">XL</option><option value="XXL">XXL</option></select>
+        </div>
+      </div>
       <div class="fr"><div class="fl">Type de graisse dominante</div>
         <select id="n-graisse" onchange="updateObjectif()"><option value="">-- Choisir --</option><option value="viscerale">Graisse viscérale (ventre dur)</option><option value="generale">Graisse générale</option><option value="aucune">Pas de graisse dominante</option></select>
       </div>
@@ -248,9 +258,11 @@ select:focus,input:focus{border-color:var(--brown)}
         <button type="button" onclick="ajouterDateSeance()" style="background:var(--bg);color:var(--brown);border:1.5px solid var(--brown);border-radius:var(--radius-sm);padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;margin-top:4px;width:100%">+ Ajouter une séance</button>
       </div>
       <div style="border-top:1.5px solid var(--border);margin:.75rem 0;padding-top:.75rem">
-        <div class="st" style="font-size:15px;margin-bottom:.5rem">Séances offertes</div>
-        <div id="seances-offertes-container"></div>
-        <button type="button" onclick="ajouterSeanceOfferte()" style="background:var(--bg);color:var(--brown);border:1.5px solid var(--brown);border-radius:var(--radius-sm);padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;margin-top:4px;width:100%">+ Ajouter une séance offerte</button>
+        <div class="st" style="font-size:15px;margin-bottom:.5rem">Séances offertes / bonus</div>
+        <div class="fr">
+          <div class="fl">Nombre de séances offertes (anniversaire, parrainage...)</div>
+          <input type="number" id="n-seances-offertes" placeholder="ex: 2" min="0" max="50" style="width:120px">
+        </div>
       </div>
       <div style="border-top:1.5px solid var(--border);margin:.75rem 0;padding-top:.75rem">
         <div class="st" style="font-size:15px;margin-bottom:.5rem">Abonnements précédents</div>
@@ -485,7 +497,7 @@ function getStatutSeances(c){
   const seancesPrevues = Math.floor(ratio * abo.total);
 
   const seancesHisto = (c.historique || []).length;
-  const seancesOffertes = (c.seancesOffertes || []).length;
+  const seancesOffertes = (c.seancesOffertes || []).reduce((sum, o) => sum + (o.nb || 1), 0);
   const seancesFaites = seancesHisto + seancesOffertes;
   const retard = seancesPrevues - seancesFaites;
   const restantes = Math.max(0, abo.total - seancesFaites);
@@ -613,8 +625,9 @@ function loadClientProg(){
   if(statut && statut.retard >= 3){
     alerts += '<div class="alert alert-red">⚠️ ' + statut.retard + ' séances de retard !</div>';
   }
-  if(sem > 1 && sem % 3 === 0){
-    alerts += '<div class="alert alert-blue">📏 Rappel : prendre les mesures à la prochaine séance !</div>';
+  const seancesFaitesTotal = (c.historique||[]).length + (c.seancesOffertes||[]).reduce((s,o)=>s+(o.nb||1),0);
+  if(sem === 8 || seancesFaitesTotal % 8 === 0 && seancesFaitesTotal > 0){
+    alerts += '<div class="alert alert-blue">📏 Fin de cycle ! Proposer une prise de mesures à cette cliente.</div>';
   }
   document.getElementById('client-alerts').innerHTML = alerts;
   const seancesFaites = (c.historique||[]).length + (c.seancesOffertes||[]).length;
@@ -623,6 +636,7 @@ function loadClientProg(){
     '<div>' +
       '<div class="sem-label">Semaine ' + sem + ' / 8 — Réglages ' + semLabel + '</div>' +
       '<div class="sem-sub">' + c.nom + ' — ' + objLabel + '</div>' +
+      (tenueInfo ? '<div class="sem-sub" style="margin-top:2px">👕 ' + tenueInfo + '</div>' : '') +
       '<div style="margin-top:4px;font-size:12px;background:rgba(255,255,255,0.15);border-radius:6px;padding:3px 8px;display:inline-block">' +
         seancesFaites + ' séance' + (seancesFaites>1?'s':'') + ' validée' + (seancesFaites>1?'s':'') +
         ' — Séance ' + seanceEnCours + ' en cours' +
@@ -771,7 +785,8 @@ function renderClients(filtre){
       '<div class="av">' + init + '</div>' +
       '<div style="flex:1">' +
         '<div class="cn">' + c.nom + '<span class="tag ' + tagClass + '">' + tagLabel + '</span></div>' +
-        '<div class="cm">' + c.age + ' ans — ' + (c.sexe==='femme'?'Femme':'Homme') + ' — ' + aboLabel(c.abonnement) + '</div>' +
+        '<div class="cm">' + (c.dateNaissance ? getAge(c.dateNaissance) : c.age) + ' ans — ' + (c.sexe==='femme'?'Femme':'Homme') + ' — ' + aboLabel(c.abonnement) + '</div>' +
+        (c.tenue||c.gilet ? '<div class="cm">👕 ' + [c.taille?c.taille+'cm':'', c.tenue?'Tenue '+c.tenue:'', c.gilet?'Gilet '+c.gilet:''].filter(Boolean).join(' — ') + '</div>' : '') +
         '<div style="font-size:12px;font-weight:600;color:' + statutColor + ';margin-top:3px">' + icon + ' ' + statutTxt + '</div>' +
         '<div class="pbw" style="margin-top:4px"><div class="pb" style="width:' + pct + '%"></div></div>' +
       '</div>' +
@@ -845,6 +860,46 @@ function loadSuivi(){
       '<span style="font-weight:600">Semaine ' + h.semaine + '</span></div>'
     ).join('');
   }
+  // Show mesures history
+  const mesures = c.mesures || [];
+  const mesuresCard = document.getElementById('mesures-histo-card');
+  const mesuresContent = document.getElementById('mesures-histo-content');
+  if(mesuresCard && mesures.length > 1){
+    mesuresCard.style.display = 'block';
+    const premiere = mesures[0];
+    const derniere = mesures[mesures.length-1];
+    const fields = [
+      {key:'poids', label:'Poids (kg)', unit:'kg'},
+      {key:'mg', label:'Masse grasse', unit:'%'},
+      {key:'mm', label:'Masse musculaire', unit:'%'},
+      {key:'ventre', label:'Tour ventre', unit:'cm'},
+      {key:'cuisse', label:'Tour cuisse', unit:'cm'},
+      {key:'hanches', label:'Tour hanches', unit:'cm'},
+      {key:'gv', label:'Graisse viscérale', unit:''}
+    ];
+    mesuresContent.innerHTML = '<div style="font-size:11px;color:var(--text2);margin-bottom:.5rem">Comparaison : ' + premiere.date + ' → ' + derniere.date + '</div>' +
+      fields.filter(f => premiere[f.key] && derniere[f.key]).map(f => {
+        const diff = parseFloat(derniere[f.key]) - parseFloat(premiere[f.key]);
+        const diffStr = (diff > 0 ? '+' : '') + diff.toFixed(1);
+        const color = (f.key==='poids'||f.key==='mg'||f.key==='ventre'||f.key==='cuisse'||f.key==='hanches'||f.key==='gv') ?
+          (diff < 0 ? '#3B6D11' : diff > 0 ? '#791F1F' : 'var(--text2)') :
+          (diff > 0 ? '#3B6D11' : diff < 0 ? '#791F1F' : 'var(--text2)');
+        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:.35rem 0;border-bottom:1px solid var(--border);font-size:12px">' +
+          '<span style="color:var(--text2)">' + f.label + '</span>' +
+          '<div>' +
+            '<span>' + premiere[f.key] + ' → ' + derniere[f.key] + ' ' + f.unit + '</span>' +
+            '<span style="font-weight:700;color:' + color + ';margin-left:8px">' + diffStr + '</span>' +
+          '</div></div>';
+      }).join('') +
+      '<div style="margin-top:.75rem">' +
+        mesures.slice().reverse().map((m,i) => 
+          '<div style="font-size:11px;color:var(--text2);padding:2px 0">' + (i===0?'🕐 ':'') + m.date + ' — par ' + (m.coach||'—') + '</div>'
+        ).join('') +
+      '</div>';
+  } else if(mesuresCard && mesures.length === 1){
+    mesuresCard.style.display = 'block';
+    mesuresContent.innerHTML = '<div style="font-size:13px;color:var(--text2)">1 prise de mesures enregistrée le ' + mesures[0].date + '</div>';
+  }
 }
 
 function sauverMesures(){
@@ -904,7 +959,7 @@ function updateObjectif(){
 }
 
 function afficherSuggestion(){
-  const age = parseInt(document.getElementById('n-age').value) || 0;
+  const dobVal = document.getElementById('n-age').value; const age = dobVal ? getAge(dobVal) : 0;
   const sexe = document.getElementById('n-sexe').value;
   const graisse = document.getElementById('n-graisse').value;
   const zone = document.getElementById('n-zone').value;
@@ -1027,7 +1082,7 @@ function getAbosPrecedents(){
 
 function ajouterClient(){
   const nom = document.getElementById('n-nom').value.trim();
-  const age = parseInt(document.getElementById('n-age').value);
+  const dobVal = document.getElementById('n-age').value; const age = dobVal ? getAge(dobVal) : 0; const dateNaissance = dobVal;
   const sexe = document.getElementById('n-sexe').value;
   const niveau = document.getElementById('n-niveau').value;
   const graisse = document.getElementById('n-graisse').value;
@@ -1056,9 +1111,9 @@ function ajouterClient(){
   const editIdx = document.getElementById('edit-idx').value;
   if(editIdx !== ''){
     const i = parseInt(editIdx);
-    clients[i] = {...clients[i], nom, age, sexe, niveau, objectif, zone, abonnement:abo, dateDebut:date, semaine, historique, seancesOffertes, abosPrecedents};
+    const nbOffertsE = parseInt(document.getElementById('n-seances-offertes').value)||0; const seancesOffertesE = nbOffertsE > 0 ? [{nb:nbOffertsE, motif:'Offerte', date:'—'}] : []; clients[i] = {...clients[i], nom, age, dateNaissance, sexe, niveau, objectif, zone, abonnement:abo, dateDebut:date, semaine, historique, seancesOffertes:seancesOffertesE, abosPrecedents};
   } else {
-    clients.push({nom, age, sexe, niveau, objectif, zone, abonnement:abo, dateDebut:date, semaine, historique, seancesOffertes, abosPrecedents, mesures:[], dernierResultat:''});
+    const nbOfferts = parseInt(document.getElementById('n-seances-offertes').value)||0; const seancesOffertes = nbOfferts > 0 ? [{nb:nbOfferts, motif:'Offerte', date:'—'}] : []; clients.push({nom, age, dateNaissance, sexe, niveau, objectif, zone, abonnement:abo, dateDebut:date, semaine, historique, seancesOffertes, abosPrecedents, mesures:[], dernierResultat:''});
   }
   save();
   resetForm();
@@ -1080,6 +1135,9 @@ function resetForm(){
   document.getElementById('zone-prioritaire').style.display = 'none';
   const oo = document.getElementById('n-objectif-override');
   if(oo) oo.value = '';
+  const so = document.getElementById('n-seances-offertes');
+  if(so) so.value = '';
+  ['n-taille','n-tenue','n-gilet'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
 }
 
 function editClient(idx){
@@ -1089,9 +1147,12 @@ function editClient(idx){
   document.getElementById('form-titre').textContent = 'Modifier le client';
   document.getElementById('btn-enregistrer').textContent = '✓ Enregistrer les modifications';
   document.getElementById('n-nom').value = c.nom;
-  document.getElementById('n-age').value = c.age;
+  document.getElementById('n-age').value = c.dateNaissance || '';
   document.getElementById('n-sexe').value = c.sexe;
   document.getElementById('n-niveau').value = c.niveau || '';
+  const tailleEl = document.getElementById('n-taille'); if(tailleEl) tailleEl.value = c.taille || '';
+  const tenueEl = document.getElementById('n-tenue'); if(tenueEl) tenueEl.value = c.tenue || '';
+  const giletEl = document.getElementById('n-gilet'); if(giletEl) giletEl.value = c.gilet || '';
   const graisse = c.objectif==='visceral' ? 'viscerale' : c.objectif==='poids' ? 'generale' : 'aucune';
   document.getElementById('n-graisse').value = graisse;
   updateObjectif();
@@ -1165,6 +1226,16 @@ function renderActivite(){
 }
 
 // ========== HELPERS ==========
+function getAge(dateNaissance){
+  if(!dateNaissance) return 0;
+  const dob = new Date(dateNaissance);
+  const now = new Date();
+  let age = now.getFullYear() - dob.getFullYear();
+  const m = now.getMonth() - dob.getMonth();
+  if(m < 0 || (m === 0 && now.getDate() < dob.getDate())) age--;
+  return age;
+}
+
 function getTranche(age, sexe, obj){
   if(obj==='poids' && sexe==='femme'){
     if(age<35)return '25-35'; if(age<45)return '35-45'; if(age<55)return '45-55'; if(age<65)return '55-65'; return '65+';
