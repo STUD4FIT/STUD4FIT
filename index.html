@@ -433,18 +433,30 @@ function getStatutSeances(c){
   if(!abo) return null;
   const debut = new Date(c.dateDebut);
   const now = new Date();
-  const moisEcoules = (now.getFullYear() - debut.getFullYear()) * 12 + (now.getMonth() - debut.getMonth());
-  const aboTermine = moisEcoules >= abo.mois;
-  const moisRestants = Math.max(0, abo.mois - moisEcoules);
-  const moisEffectifs = Math.min(moisEcoules, abo.mois);
-  const seancesPrevues = moisEffectifs * abo.seances;
+
+  // Calcul date de fin
+  const dateFin = new Date(debut);
+  dateFin.setMonth(dateFin.getMonth() + abo.mois);
+  const aboTermine = now >= dateFin;
+
+  // Mois restants
+  const moisRestants = aboTermine ? 0 : Math.ceil((dateFin - now) / (1000*60*60*24*30));
+
+  // Calcul glissant au prorata du jour
+  // Ex: debut 25/05, 4 seances/mois, on est le 04/06
+  // Jours depuis debut = 10, duree abo = 90 jours
+  // seances prevues = (10/90) * 12 = 1.33 -> arrondi a 1
+  const joursTotal = (dateFin - debut) / (1000*60*60*24);
+  const joursEcoules = Math.min((now - debut) / (1000*60*60*24), joursTotal);
+  const ratio = joursEcoules / joursTotal;
+  const seancesPrevues = Math.floor(ratio * abo.total);
+
   const seancesHisto = (c.historique || []).length;
   const seancesOffertes = (c.seancesOffertes || []).length;
   const seancesFaites = seancesHisto + seancesOffertes;
   const retard = seancesPrevues - seancesFaites;
   const restantes = Math.max(0, abo.total - seancesFaites);
-  const dateFin = new Date(debut);
-  dateFin.setMonth(dateFin.getMonth() + abo.mois);
+
   return {seancesFaites, seancesPrevues, retard, restantes, total:abo.total, moisRestants, aboTermine, dateFin};
 }
 function getStatutIcon(statut){
