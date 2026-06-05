@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Stud4Fit — Studio EMS</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Stud4Fit">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#8B4513">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{--brown:#8B4513;--brown-dark:#6B3410;--brown-light:#FAECE7;--green-light:#EAF3DE;--green-border:#C0DD97;--green-text:#3B6D11;--orange-light:#FAEEDA;--orange-border:#FAC775;--orange-text:#633806;--red-light:#FCEBEB;--red-border:#F7C1C1;--red-text:#791F1F;--blue-light:#E6F1FB;--blue-border:#B5D4F4;--blue-text:#0C447C;--bg:#F7F4F1;--card:#fff;--border:#E8E2DC;--text:#2C1810;--text2:#8A7060;--radius:12px;--radius-sm:8px}
@@ -208,8 +213,8 @@ select:focus,input:focus{border-color:var(--brown)}
     <div class="card">
       <div class="st" id="form-titre">Nouveau client</div>
       <input type="hidden" id="edit-idx" value="">
-      <div class="fr"><div class="fl">Prénom et nom</div><input type="text" id="n-nom" placeholder="ex: Caroline Martin"></div>
-      <div class="fr"><div class="fl">Date de naissance</div><input type="date" id="n-age" oninput="afficherSuggestion()"></div>
+      <div class="fr"><div class="fl">Prénom et nom</div><input type="text" id="n-nom" placeholder="ex: Caroline Martin" oninput="sauverBrouillon()"></div>
+      <div class="fr"><div class="fl">Date de naissance</div><input type="date" id="n-age" oninput="afficherSuggestion();sauverBrouillon()"></div>
       <div class="fr"><div class="fl">Sexe</div><select id="n-sexe" onchange="afficherSuggestion()"><option value="">-- Choisir --</option><option value="femme">Femme</option><option value="homme">Homme</option></select></div>
       <div class="fr"><div class="fl">Niveau d'activité</div><select id="n-niveau" onchange="afficherSuggestion()"><option value="">-- Choisir --</option><option value="actif">Actif</option><option value="peu-actif">Peu actif</option><option value="sedentaire">Sédentaire</option></select></div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
@@ -248,7 +253,7 @@ select:focus,input:focus{border-color:var(--brown)}
           <optgroup label="8 séances / mois"><option value="8x3">8 séances/mois — 3 mois (24 séances)</option><option value="8x6">8 séances/mois — 6 mois (48 séances)</option><option value="8x12">8 séances/mois — 12 mois (96 séances)</option></optgroup>
         </select>
       </div>
-      <div class="fr"><div class="fl">Date de début abonnement</div><input type="date" id="n-date"></div>
+      <div class="fr"><div class="fl">Date de début abonnement</div><input type="date" id="n-date" oninput="sauverBrouillon()"></div>
       <div style="border-top:1.5px solid var(--border);margin:.75rem 0;padding-top:.75rem">
         <div class="st" style="font-size:15px;margin-bottom:.5rem">Séances déjà effectuées</div>
         <div class="fr">
@@ -326,6 +331,15 @@ window.addEventListener('DOMContentLoaded', function() {
   if(lockLogo) lockLogo.src = LOGO_B64;
   const headerLogo = document.getElementById('header-logo');
   if(headerLogo) headerLogo.src = LOGO_B64;
+  // Set app icons dynamically
+  const iconLink = document.createElement('link');
+  iconLink.rel = 'apple-touch-icon';
+  iconLink.href = LOGO_B64;
+  document.head.appendChild(iconLink);
+  const faviconLink = document.createElement('link');
+  faviconLink.rel = 'icon';
+  faviconLink.href = LOGO_B64;
+  document.head.appendChild(faviconLink);
   // Auto-login if session still valid
   verifierSession();
 });
@@ -501,6 +515,53 @@ function supprimerMesure(clientIdx, mesureIdx){
   loadSuivi();
 }
 
+function sauverBrouillon(){
+  // Only save if not in edit mode
+  if(document.getElementById('edit-idx').value !== '') return;
+  const draft = {
+    nom: document.getElementById('n-nom').value,
+    age: document.getElementById('n-age').value,
+    sexe: document.getElementById('n-sexe').value,
+    niveau: document.getElementById('n-niveau').value,
+    graisse: document.getElementById('n-graisse').value,
+    zone: document.getElementById('n-zone').value,
+    abo: document.getElementById('n-abo').value,
+    date: document.getElementById('n-date').value,
+    taille: document.getElementById('n-taille') ? document.getElementById('n-taille').value : '',
+    tenue: document.getElementById('n-tenue') ? document.getElementById('n-tenue').value : '',
+    gilet: document.getElementById('n-gilet') ? document.getElementById('n-gilet').value : ''
+  };
+  localStorage.setItem('s4f_draft', JSON.stringify(draft));
+}
+
+function restaurerBrouillon(){
+  if(document.getElementById('edit-idx').value !== '') return;
+  try {
+    const draft = JSON.parse(localStorage.getItem('s4f_draft') || 'null');
+    if(!draft || !draft.nom) return;
+    document.getElementById('n-nom').value = draft.nom || '';
+    document.getElementById('n-age').value = draft.age || '';
+    document.getElementById('n-sexe').value = draft.sexe || '';
+    document.getElementById('n-niveau').value = draft.niveau || '';
+    document.getElementById('n-graisse').value = draft.graisse || '';
+    document.getElementById('n-abo').value = draft.abo || '';
+    document.getElementById('n-date').value = draft.date || '';
+    if(draft.taille && document.getElementById('n-taille')) document.getElementById('n-taille').value = draft.taille;
+    if(draft.tenue && document.getElementById('n-tenue')) document.getElementById('n-tenue').value = draft.tenue;
+    if(draft.gilet && document.getElementById('n-gilet')) document.getElementById('n-gilet').value = draft.gilet;
+    if(draft.graisse) updateObjectif();
+    if(draft.zone) document.getElementById('n-zone').value = draft.zone;
+    // Show banner
+    const banner = document.createElement('div');
+    banner.className = 'alert alert-blue';
+    banner.style.marginBottom = '.75rem';
+    banner.innerHTML = '📋 Brouillon restauré — vos données ont été récupérées automatiquement';
+    const formCard = document.querySelector('#sec-nouveau .card');
+    if(formCard) formCard.insertBefore(banner, formCard.firstChild);
+    setTimeout(() => banner.remove(), 4000);
+  } catch(e){}
+}
+
 function deconnexion(){
   currentUser = null;
   localStorage.removeItem('s4f_session');
@@ -565,7 +626,55 @@ function getStatutIcon(statut){
 }
 
 // ========== NAVIGATION ==========
+function sauvegarderFormulaire(){
+  const data = {
+    nom: document.getElementById('n-nom').value,
+    age: document.getElementById('n-age').value,
+    sexe: document.getElementById('n-sexe').value,
+    niveau: document.getElementById('n-niveau').value,
+    graisse: document.getElementById('n-graisse').value,
+    zone: document.getElementById('n-zone').value,
+    abo: document.getElementById('n-abo').value,
+    date: document.getElementById('n-date').value,
+    nbseances: document.getElementById('n-nbseances').value,
+    offerts: document.getElementById('n-seances-offertes') ? document.getElementById('n-seances-offertes').value : '',
+    taille: document.getElementById('n-taille') ? document.getElementById('n-taille').value : '',
+    tenue: document.getElementById('n-tenue') ? document.getElementById('n-tenue').value : '',
+    gilet: document.getElementById('n-gilet') ? document.getElementById('n-gilet').value : '',
+    editIdx: document.getElementById('edit-idx').value
+  };
+  if(data.nom) localStorage.setItem('s4f_form_draft', JSON.stringify(data));
+}
+
+function restaurerFormulaire(){
+  try {
+    const saved = localStorage.getItem('s4f_form_draft');
+    if(!saved) return;
+    const data = JSON.parse(saved);
+    if(!data.nom) return;
+    document.getElementById('n-nom').value = data.nom || '';
+    document.getElementById('n-age').value = data.age || '';
+    document.getElementById('n-sexe').value = data.sexe || '';
+    document.getElementById('n-niveau').value = data.niveau || '';
+    document.getElementById('n-graisse').value = data.graisse || '';
+    updateObjectif();
+    document.getElementById('n-zone').value = data.zone || '';
+    document.getElementById('n-abo').value = data.abo || '';
+    document.getElementById('n-date').value = data.date || '';
+    if(data.nbseances) { document.getElementById('n-nbseances').value = data.nbseances; genererDatesSeances(); }
+    if(data.offerts && document.getElementById('n-seances-offertes')) document.getElementById('n-seances-offertes').value = data.offerts;
+    if(data.taille && document.getElementById('n-taille')) document.getElementById('n-taille').value = data.taille;
+    if(data.tenue && document.getElementById('n-tenue')) document.getElementById('n-tenue').value = data.tenue;
+    if(data.gilet && document.getElementById('n-gilet')) document.getElementById('n-gilet').value = data.gilet;
+    if(data.editIdx) document.getElementById('edit-idx').value = data.editIdx;
+    afficherSuggestion();
+  } catch(e){}
+}
+
 function nav(id, btn){
+  // Save form if leaving nouveau tab
+  const activeTab = document.querySelector('.sec.active');
+  if(activeTab && activeTab.id === 'sec-nouveau') sauvegarderFormulaire();
   document.querySelectorAll('.sec').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.nb').forEach(b => b.classList.remove('active'));
   document.getElementById('sec-' + id).classList.add('active');
@@ -588,9 +697,14 @@ function nav(id, btn){
     document.getElementById('sel-suivi').value = '';
     document.getElementById('suivi-content').style.display = 'none';
   }
+  if(id === 'nouveau') setTimeout(restaurerFormulaire, 50);
   if(id === 'clients'){
     document.getElementById('search-clients').value = '';
     renderClients('');
+  }
+  if(id === 'nouveau'){
+    // Restore draft if exists
+    restaurerBrouillon();
   }
   if(id === 'admin'){ renderCoachs(); renderActivite(); }
 }
@@ -678,6 +792,18 @@ function loadClientProg(){
   if(idx === '') return;
   const c = clients[parseInt(idx)];
   if(!c) return;
+  // Recalculate semaine if programme was changed
+  if(c.dateDernierChangement){
+    const dateChange = new Date(c.dateDernierChangement);
+    const seancesDepuis = (c.historique||[]).filter(h => {
+      if(!h.date) return false;
+      const parts = h.date.split(' ')[0].split('/');
+      if(parts.length !== 3) return false;
+      const d = new Date(parts[2]+'-'+parts[1]+'-'+parts[0]);
+      return d >= dateChange;
+    }).length;
+    c.semaine = Math.min(8, seancesDepuis + 1);
+  }
   const sem = c.semaine || 1;
   const semIdx = getSemIdx(sem);
   const semLabel = ['S1-2','S3-4','S5-6','S7-8'][semIdx];
@@ -725,32 +851,66 @@ function changerProgramme(){
   if(!idx || !override) return;
   const c = clients[parseInt(idx)];
   if(!c) return;
-  // Save old programme info
+
+  // Ask for date of programme change
+  const dateInput = prompt(
+    'Date du changement de programme (format JJ/MM/AAAA) :\nLaissez vide pour utiliser aujourd\'hui',
+    new Date().toLocaleDateString('fr-FR')
+  );
+  if(dateInput === null) return; // Cancelled
+
+  let dateChangement;
+  if(dateInput.trim()){
+    const parts = dateInput.trim().split('/');
+    if(parts.length === 3){
+      dateChangement = parts[2] + '-' + parts[1] + '-' + parts[0];
+    } else {
+      dateChangement = new Date().toISOString().slice(0,10);
+    }
+  } else {
+    dateChangement = new Date().toISOString().slice(0,10);
+  }
+
+  // Calculate semaine based on sessions done AFTER date of change
+  const dateChange = new Date(dateChangement);
+  const seancesDepuisChangement = (c.historique||[]).filter(h => {
+    if(!h.date) return false;
+    const parts = h.date.split(' ')[0].split('/');
+    if(parts.length !== 3) return false;
+    const d = new Date(parts[2]+'-'+parts[1]+'-'+parts[0]);
+    return d >= dateChange;
+  }).length;
+  const nouvelleSemaine = Math.min(8, seancesDepuisChangement + 1);
+
+  // Save change
   if(!c.changementsProgramme) c.changementsProgramme = [];
+  const dateLabel = dateInput.trim() || new Date().toLocaleDateString('fr-FR');
   c.changementsProgramme.push({
-    date: new Date().toLocaleDateString('fr-FR'),
+    date: dateLabel,
+    dateISO: dateChangement,
     ancienProg: c.objectif,
     nouveauProg: override,
+    seancesAvant: (c.historique||[]).length,
     coach: currentUser ? currentUser.nom : '—'
   });
-  // Change programme and reset semaine
+
+  // Change programme and update semaine
   c.objectif = override;
-  c.semaine = 1;
+  c.semaine = nouvelleSemaine;
+  c.dateDernierChangement = dateChangement;
   save();
-  // Update indicator
-  const sem = 1;
-  const semLabel = 'S1-2';
+
   const objLabel = override==='poids' ? 'Perte de poids' : override==='muscle' ? 'Renforcement musculaire' : 'Ventre viscéral';
-  document.getElementById('sem-indicator').innerHTML =
-    '<div><div class="sem-label">Semaine 1 / 8 — Réglages S1-2</div>' +
-    '<div class="sem-sub">' + c.nom + ' — ' + objLabel + ' (programme changé)</div></div>' +
-    '<div style="text-align:right"><div style="font-size:18px;font-weight:700">0%</div>' +
-    '<div class="sem-sub">nouveau départ</div></div>';
-  // Reset override selector
+  const semLabel = ['S1-2','S1-2','S1-2','S3-4','S3-4','S5-6','S5-6','S7-8','S7-8'][nouvelleSemaine] || 'S1-2';
+
   document.getElementById('prog-override').value = '';
-  // Show confirmation
-  const alerts = document.getElementById('client-alerts');
-  alerts.innerHTML = '<div class="alert alert-green">✅ Programme changé vers ' + objLabel + ' — reprise à la semaine 1</div>';
+  document.getElementById('client-alerts').innerHTML =
+    '<div class="alert alert-green">✅ Programme changé vers ' + objLabel +
+    ' — ' + seancesDepuisChangement + ' séance' + (seancesDepuisChangement>1?'s':'') +
+    ' depuis le ' + dateLabel + ' → Semaine ' + nouvelleSemaine + '</div>';
+
+  // Reload client prog
+  loadClientProg();
 }
 
 function afficherProg(){
@@ -914,6 +1074,14 @@ function loadSuivi(){
   const moisEcoules = statut ? statut.moisRestants : 0;
   const pctAbo = statut ? Math.min(100, Math.round(((statut.moisTotal - statut.moisRestants) / statut.moisTotal) * 100)) : 0;
   const pctSem = Math.min(100, Math.round(((c.semaine||1)/8)*100));
+  // Show programme changes history
+  const changementsHTML = (c.changementsProgramme||[]).length > 0 ?
+    '<div style="margin-top:.75rem"><div class="fl">Historique des programmes</div>' +
+    (c.changementsProgramme||[]).map(ch => {
+      const ancLabel = ch.ancienProg==='poids'?'Perte de poids':ch.ancienProg==='muscle'?'Renforcement':'Ventre viscéral';
+      const nouvLabel = ch.nouveauProg==='poids'?'Perte de poids':ch.nouveauProg==='muscle'?'Renforcement':ch.nouveauProg==='visceral'?'Ventre viscéral':ch.nouveauProg;
+      return '<div style="font-size:12px;color:var(--text2);padding:3px 0">📅 ' + ch.date + ' : ' + ancLabel + ' → <strong>' + nouvLabel + '</strong></div>';
+    }).join('') + '</div>' : '';
   const abosPrecHTML = (c.abosPrecedents||[]).length > 0 ?
     '<div style="margin-top:.75rem"><div class="fl">Abonnements précédents</div>' +
     (c.abosPrecedents||[]).map(a => '<div style="font-size:12px;color:var(--text2);padding:2px 0">' + a.label + ' — débuté le ' + a.date + '</div>').join('') + '</div>' : '';
@@ -937,7 +1105,7 @@ function loadSuivi(){
     '<div style="font-size:11px;color:var(--text2);text-align:right">' + pctSem + '%</div>' +
     (statut&&statut.aboTermine ? '<div class="alert alert-red" style="margin-top:.75rem">🔴 Abonnement terminé depuis le ' + statut.dateFin.toLocaleDateString('fr-FR') + ' — renouvellement nécessaire !</div>' :
      statut&&statut.moisRestants<=1 ? '<div class="alert alert-orange" style="margin-top:.75rem">🔔 Abonnement se termine bientôt !</div>' : '') +
-    abosPrecHTML + offertesHTML;
+    changementsHTML + abosPrecHTML + offertesHTML;
   const histo = c.historique || [];
   if(histo.length){
     document.getElementById('histo-card').style.display = 'block';
@@ -1263,11 +1431,13 @@ function ajouterClient(){
   }
   save();
   resetForm();
+  localStorage.removeItem('s4f_draft');
   document.getElementById('succ-client').style.display = 'block';
   setTimeout(() => document.getElementById('succ-client').style.display='none', 3000);
 }
 
 function resetForm(){
+  localStorage.removeItem('s4f_form_draft');
   document.getElementById('edit-idx').value = '';
   document.getElementById('form-titre').textContent = 'Nouveau client';
   document.getElementById('btn-enregistrer').textContent = 'Enregistrer le client';
