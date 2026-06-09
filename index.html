@@ -842,8 +842,12 @@ function loadClientProg(){
       '<div class="sem-label">Semaine ' + sem + ' / 8 — Réglages ' + semLabel + '</div>' +
       '<div class="sem-sub">' + c.nom + ' — ' + objLabel + '</div>' +
       (derniereSeance ? '<div class="sem-sub" style="margin-top:2px;opacity:0.9">Dernière séance : ' + derniereSeance.split(' à')[0] + '</div>' : '') +
-      (tenueInfo ? '<div class="sem-sub" style="margin-top:2px">👕 ' + tenueInfo + '</div>' : '') +
-      (tenueInfo ? '<div class="sem-sub" style="margin-top:2px">👕 ' + tenueInfo + '</div>' : '') +
+      (c.gilet ? '<div style="margin-top:6px">' +
+        '<span style="background:rgba(255,255,255,0.35);color:#fff;font-size:15px;font-weight:800;padding:5px 14px;border-radius:8px;letter-spacing:0.5px">🧥 Gilet ' + c.gilet + '</span>' +
+        '</div>' : '') +
+      (c.gilet ? '<div style="margin-top:6px">' +
+        '<span style="background:rgba(255,255,255,0.35);color:#fff;font-size:15px;font-weight:800;padding:5px 14px;border-radius:8px;letter-spacing:0.5px">🧥 Gilet ' + c.gilet + '</span>' +
+        '</div>' : '') +
       '<div style="margin-top:4px;font-size:12px;background:rgba(255,255,255,0.15);border-radius:6px;padding:3px 8px;display:inline-block">' +
         seancesFaites + ' séance' + (seancesFaites>1?'s':'') + ' validée' + (seancesFaites>1?'s':'') +
         ' — Séance ' + seanceEnCours + ' en cours' +
@@ -1032,7 +1036,11 @@ function renderClients(filtre){
       '<div style="flex:1">' +
         '<div class="cn">' + c.nom + '<span class="tag ' + tagClass + '">' + tagLabel + '</span></div>' +
         '<div class="cm">' + (c.dateNaissance ? getAge(c.dateNaissance) : c.age) + ' ans — ' + (c.sexe==='femme'?'Femme':'Homme') + ' — ' + aboLabel(c.abonnement) + '</div>' +
-        (c.tenue||c.gilet ? '<div class="cm">👕 ' + [c.taille?c.taille+'cm':'', c.tenue?'Tenue '+c.tenue:'', c.gilet?'Gilet '+c.gilet:''].filter(Boolean).join(' — ') + '</div>' : '') +
+        ((c.tenue||c.gilet||c.taille) ? '<div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap;align-items:center">' +
+          (c.taille ? '<span style="color:var(--text2);font-size:11px">' + c.taille + ' cm</span>' : '') +
+          (c.tenue ? '<span style="background:var(--brown-light);color:var(--brown);font-size:11px;font-weight:600;padding:2px 7px;border-radius:4px">👕 ' + c.tenue + '</span>' : '') +
+          (c.gilet ? '<span style="background:#8B4513;color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px">🧥 Gilet ' + c.gilet + '</span>' : '') +
+        '</div>' : '') +
         '<div style="font-size:12px;font-weight:600;color:' + statutColor + ';margin-top:3px">' + icon + ' ' + statutTxt + '</div>' +
         '<div class="pbw" style="margin-top:4px"><div class="pb" style="width:' + pct + '%"></div></div>' +
       '</div>' +
@@ -1448,11 +1456,17 @@ function getSeancesOffertes(){
 }
 
 function getAbosPrecedents(){
-  return Array.from(document.querySelectorAll('.abo-precedent-item')).map(el => ({
-    date: el.querySelector('.abo-prec-date').value,
-    type: el.querySelector('.abo-prec-type').value,
-    label: aboLabel(el.querySelector('.abo-prec-type').value)
-  })).filter(a => a.date);
+  return Array.from(document.querySelectorAll('.abo-precedent-item')).map(el => {
+    const type = el.querySelector('.abo-prec-type') ? el.querySelector('.abo-prec-type').value : '';
+    const debut = el.querySelector('.abo-prec-debut') ? el.querySelector('.abo-prec-debut').value : '';
+    const fin = el.querySelector('.abo-prec-fin') ? el.querySelector('.abo-prec-fin').value : '';
+    const programmes = Array.from(el.querySelectorAll('.prog-prec-item')).map(p => ({
+      type: p.querySelector('.prog-prec-type') ? p.querySelector('.prog-prec-type').value : '',
+      nb: parseInt(p.querySelector('.prog-prec-nb') ? p.querySelector('.prog-prec-nb').value : '0') || 0
+    })).filter(p => p.type && p.nb > 0);
+    const totalSeances = programmes.reduce((s,p) => s+p.nb, 0);
+    return {type, debut, fin, label:aboLabel(type), programmes, totalSeances};
+  }).filter(a => a.type);
 }
 
 function ajouterClient(){
