@@ -649,6 +649,9 @@ function sauvegarderFormulaire(){
 
 function restaurerFormulaire(){
   try {
+    // Only restore if we're not in edit mode
+    const editIdx = document.getElementById('edit-idx').value;
+    if(editIdx !== '') return; // Don't restore if editing existing client
     const saved = localStorage.getItem('s4f_form_draft');
     if(!saved) return;
     const data = JSON.parse(saved);
@@ -698,7 +701,7 @@ function nav(id, btn){
     document.getElementById('sel-suivi').value = '';
     document.getElementById('suivi-content').style.display = 'none';
   }
-  if(id === 'nouveau') setTimeout(restaurerFormulaire, 50);
+  if(id === 'nouveau' && !window._editingClient) setTimeout(restaurerFormulaire, 50);
   if(id === 'clients'){
     document.getElementById('search-clients').value = '';
     renderClients('');
@@ -832,10 +835,13 @@ function loadClientProg(){
   try { seancesFaites += (c.seancesOffertes||[]).reduce((s,o)=>s+(o&&o.nb?o.nb:1),0); } catch(e){}
   const seanceEnCours = seancesFaites + 1;
   const tenueInfo = [c.taille?c.taille+'cm':'', c.tenue?'Tenue '+c.tenue:'', c.gilet?'Gilet '+c.gilet:''].filter(Boolean).join(' — ');
+  const histo = c.historique || [];
+  const derniereSeance = histo.length > 0 ? histo[histo.length-1].date : null;
   document.getElementById('sem-indicator').innerHTML =
     '<div>' +
       '<div class="sem-label">Semaine ' + sem + ' / 8 — Réglages ' + semLabel + '</div>' +
       '<div class="sem-sub">' + c.nom + ' — ' + objLabel + '</div>' +
+      (derniereSeance ? '<div class="sem-sub" style="margin-top:2px;opacity:0.9">Dernière séance : ' + derniereSeance.split(' à')[0] + '</div>' : '') +
       (tenueInfo ? '<div class="sem-sub" style="margin-top:2px">👕 ' + tenueInfo + '</div>' : '') +
       (tenueInfo ? '<div class="sem-sub" style="margin-top:2px">👕 ' + tenueInfo + '</div>' : '') +
       '<div style="margin-top:4px;font-size:12px;background:rgba(255,255,255,0.15);border-radius:6px;padding:3px 8px;display:inline-block">' +
@@ -1487,8 +1493,11 @@ function ajouterClient(){
   save();
   resetForm();
   localStorage.removeItem('s4f_draft');
-  document.getElementById('succ-client').style.display = 'block';
-  setTimeout(() => document.getElementById('succ-client').style.display='none', 3000);
+  const isEditMode = document.getElementById('edit-idx').value !== '';
+  const msgEl = document.getElementById('succ-client');
+  msgEl.textContent = isEditMode ? '✅ Modifications enregistrées !' : '✅ Client enregistré !';
+  msgEl.style.display = 'block';
+  setTimeout(() => msgEl.style.display='none', 3000);
 }
 
 function resetForm(){
@@ -1514,6 +1523,8 @@ function resetForm(){
 function editClient(idx){
   const c = clients[idx];
   if(!c) return;
+  // Clear draft to prevent restaurerFormulaire from overwriting
+  localStorage.removeItem('s4f_form_draft');
   document.getElementById('edit-idx').value = idx;
   document.getElementById('form-titre').textContent = 'Modifier le client';
   document.getElementById('btn-enregistrer').textContent = '✓ Enregistrer les modifications';
@@ -1539,7 +1550,9 @@ function editClient(idx){
       if(parts.length === 3) items[i].querySelector('input[type=date]').value = parts[2]+'-'+parts[1]+'-'+parts[0];
     }
   });
+  window._editingClient = true;
   nav('nouveau', document.querySelectorAll('.nb')[3]);
+  setTimeout(() => window._editingClient = false, 200);
   window.scrollTo(0, 0);
 }
 
