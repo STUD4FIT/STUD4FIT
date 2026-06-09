@@ -754,7 +754,7 @@ function getStatutSeances(c){
   const retard = seancesPrevues - seancesFaites;
   const restantes = Math.max(0, abo.total - seancesFaites);
 
-  return {seancesFaites, seancesPrevues, retard, restantes, total:abo.total, moisRestants, aboTermine, dateFin};
+  return {seancesFaites, seancesPrevues, retard, restantes, total:totalAvecOfferts, moisRestants, aboTermine, dateFin};
 }
 function getStatutIcon(statut){
   if(!statut) return '⚪';
