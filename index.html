@@ -1116,7 +1116,10 @@ function loadSuivi(){
         '<div style="font-weight:600;margin-bottom:2px">' + a.label + '</div>' +
         (debutStr||finStr ? '<div style="color:var(--text2);font-size:11px;margin-bottom:4px">' + (debutStr?'Du '+debutStr:'') + (finStr?' au '+finStr:'') + '</div>' : '') +
         (progsHTML ? '<div>' + progsHTML + '</div>' : '') +
-        (a.totalSeances ? '<div style="color:var(--text2);font-size:11px;margin-top:4px">Total : ' + a.totalSeances + ' séances</div>' : '') +
+        '<div style="color:var(--text2);font-size:11px;margin-top:4px">' +
+          (a.totalSeances ? 'Total : ' + a.totalSeances + ' séances' : '') +
+          (a.offerts ? ' + ' + a.offerts + ' séance' + (a.offerts>1?'s':'') + ' offerte' + (a.offerts>1?'s':'') : '') +
+        '</div>' +
         '</div>';
     }).join('') + '</div>' : '';
   const offertesHTML = (c.seancesOffertes||[]).length > 0 ?
@@ -1418,9 +1421,12 @@ function ajouterAboPrecedent(){
       '<div><div class="fl">Date fin</div><input type="date" class="abo-prec-fin" style="margin-bottom:0"></div>' +
     '</div>' +
     // Programmes avec nombre de séances
-    '<div><div class="fl" style="margin-bottom:4px">Programmes suivis</div>' +
+    '<div style="margin-bottom:.6rem"><div class="fl" style="margin-bottom:4px">Programmes suivis</div>' +
       '<div class="abo-prec-progs"></div>' +
       '<button type="button" onclick="ajouterProgPrecedent(this)" style="background:var(--bg);color:var(--blue-text);border:1.5px solid var(--blue-border);border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;width:100%;margin-top:4px">+ Ajouter un programme</button>' +
+    '</div>' +
+    '<div><div class="fl">Séances offertes (anniversaire, parrainage...)</div>' +
+      '<input type="number" class="abo-prec-offerts" placeholder="ex: 2" min="0" max="50" style="width:120px;margin-bottom:0">' +
     '</div>';
   container.appendChild(div);
 }
@@ -1465,54 +1471,88 @@ function getAbosPrecedents(){
       nb: parseInt(p.querySelector('.prog-prec-nb') ? p.querySelector('.prog-prec-nb').value : '0') || 0
     })).filter(p => p.type && p.nb > 0);
     const totalSeances = programmes.reduce((s,p) => s+p.nb, 0);
-    return {type, debut, fin, label:aboLabel(type), programmes, totalSeances};
+    const offerts = parseInt(el.querySelector('.abo-prec-offerts') ? el.querySelector('.abo-prec-offerts').value : '0') || 0;
+    return {type, debut, fin, label:aboLabel(type), programmes, totalSeances, offerts};
   }).filter(a => a.type);
 }
 
 function ajouterClient(){
   const nom = document.getElementById('n-nom').value.trim();
-  const dobVal = document.getElementById('n-age').value; const age = dobVal ? getAge(dobVal) : 0; const dateNaissance = dobVal;
+  const dobVal = document.getElementById('n-age').value;
+  const age = dobVal ? getAge(dobVal) : 0;
+  const dateNaissance = dobVal;
   const sexe = document.getElementById('n-sexe').value;
   const niveau = document.getElementById('n-niveau').value;
   const graisse = document.getElementById('n-graisse').value;
   const abo = document.getElementById('n-abo').value;
   const date = document.getElementById('n-date').value;
-  if(!nom || !age || !sexe || !graisse || !abo || !date){
-    alert('Merci de remplir tous les champs obligatoires.');
+
+  if(!nom || !sexe || !graisse || !abo || !date){
+    alert('Merci de remplir tous les champs obligatoires (nom, sexe, type de graisse, abonnement, date de début).');
     return;
   }
-  // Check if user overrode the programme suggestion
+
   const overrideEl = document.getElementById('n-objectif-override');
   const override = overrideEl ? overrideEl.value : '';
   const objectif = override || (graisse==='viscerale' ? 'visceral' : graisse==='generale' ? 'poids' : 'muscle');
   const zone = document.getElementById('n-zone').value || '';
+
+  // Taille / tenue / gilet
+  const taille = document.getElementById('n-taille') ? document.getElementById('n-taille').value : '';
+  const tenue = document.getElementById('n-tenue') ? document.getElementById('n-tenue').value : '';
+  const gilet = document.getElementById('n-gilet') ? document.getElementById('n-gilet').value : '';
+
+  // Historique séances
   const historique = [];
   document.querySelectorAll('.seance-date-item').forEach((el, i) => {
     const d = el.querySelector('input[type=date]').value;
     if(d){
       const parts = d.split('-');
-      historique.push({semaine: Math.min(i+1, 8), date: parts[2]+'/'+parts[1]+'/'+parts[0], coach: currentUser ? currentUser.nom : '—'});
+      historique.push({semaine: Math.min(i+1,8), date: parts[2]+'/'+parts[1]+'/'+parts[0], coach: currentUser ? currentUser.nom : '—'});
     }
   });
   const semaine = Math.min(8, historique.length + 1);
-  const seancesOffertes = getSeancesOffertes();
+
+  // Séances offertes
+  const nbOfferts = parseInt(document.getElementById('n-seances-offertes') ? document.getElementById('n-seances-offertes').value : '0') || 0;
+  const seancesOffertes = nbOfferts > 0 ? [{nb:nbOfferts, motif:'Offerte', date:'—'}] : [];
+
+  // Abonnements précédents
   const abosPrecedents = getAbosPrecedents();
+
+  // Edit ou nouveau ?
   const editIdx = document.getElementById('edit-idx').value;
-  if(editIdx !== ''){
+  const isEdit = editIdx !== '';
+
+  if(isEdit){
     const i = parseInt(editIdx);
-    const nbOffertsE = parseInt(document.getElementById('n-seances-offertes').value)||0; const seancesOffertesE = nbOffertsE > 0 ? [{nb:nbOffertsE, motif:'Offerte', date:'—'}] : []; clients[i] = {...clients[i], nom, age, dateNaissance, sexe, niveau, objectif, zone, abonnement:abo, dateDebut:date, semaine, historique, seancesOffertes:seancesOffertesE, abosPrecedents};
+    // Preserve existing mesures and other data not in form
+    clients[i] = {
+      ...clients[i],
+      nom, age, dateNaissance, sexe, niveau, taille, tenue, gilet,
+      objectif, zone, abonnement:abo, dateDebut:date,
+      semaine, historique, seancesOffertes, abosPrecedents
+    };
   } else {
-    const nbOfferts = parseInt(document.getElementById('n-seances-offertes').value)||0; const seancesOffertes = nbOfferts > 0 ? [{nb:nbOfferts, motif:'Offerte', date:'—'}] : []; clients.push({nom, age, dateNaissance, sexe, niveau, objectif, zone, abonnement:abo, dateDebut:date, semaine, historique, seancesOffertes, abosPrecedents, mesures:[], dernierResultat:''});
+    clients.push({
+      nom, age, dateNaissance, sexe, niveau, taille, tenue, gilet,
+      objectif, zone, abonnement:abo, dateDebut:date,
+      semaine, historique, seancesOffertes, abosPrecedents,
+      mesures:[], dernierResultat:'', changementsProgramme:[]
+    });
   }
+
   save();
-  resetForm();
-  localStorage.removeItem('s4f_draft');
-  const isEditMode = document.getElementById('edit-idx').value !== '';
+
+  // Show message BEFORE resetForm (which clears edit-idx)
   const msgEl = document.getElementById('succ-client');
-  msgEl.textContent = isEditMode ? '✅ Modifications enregistrées !' : '✅ Client enregistré !';
+  msgEl.textContent = isEdit ? '✅ Modifications enregistrées !' : '✅ Client enregistré !';
   msgEl.style.display = 'block';
-  setTimeout(() => msgEl.style.display='none', 3000);
+  setTimeout(() => msgEl.style.display='none', 4000);
+
+  resetForm();
 }
+
 
 function resetForm(){
   localStorage.removeItem('s4f_form_draft');
