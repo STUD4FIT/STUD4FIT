@@ -275,6 +275,7 @@ select:focus,input:focus{border-color:var(--brown)}
       </div>
       <div style="border-top:1.5px solid var(--border);margin:.75rem 0;padding-top:.75rem">
         <div class="st" style="font-size:15px;margin-bottom:.5rem">Abonnements précédents</div>
+        <p style="font-size:12px;color:var(--text2);margin-bottom:.75rem;line-height:1.5">Pour chaque abonnement passé, tu peux saisir le type, les dates, le ou les programmes suivis et toutes les séances effectuées.</p>
         <div id="abos-precedents-container"></div>
         <button type="button" onclick="ajouterAboPrecedent()" style="background:var(--bg);color:var(--brown);border:1.5px solid var(--brown);border-radius:var(--radius-sm);padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;margin-top:4px;width:100%">+ Ajouter un abonnement précédent</button>
       </div>
@@ -792,6 +793,8 @@ function loadClientProg(){
   if(idx === '') return;
   const c = clients[parseInt(idx)];
   if(!c) return;
+  // Update age from dateNaissance
+  if(c.dateNaissance) c.age = getAge(c.dateNaissance);
   // Recalculate semaine if programme was changed
   if(c.dateDernierChangement){
     const dateChange = new Date(c.dateDernierChangement);
@@ -920,10 +923,14 @@ function afficherProg(){
   if(!c) return;
   const sem = c.semaine || 1;
   const semIdx = getSemIdx(sem);
-  const tranche = getTranche(c.age, c.sexe, c.objectif);
+  const ageReel = c.dateNaissance ? getAge(c.dateNaissance) : (c.age || 30);
+  const tranche = getTranche(ageReel, c.sexe, c.objectif);
   const prog = PROGS[c.objectif] && PROGS[c.objectif][c.sexe] && PROGS[c.objectif][c.sexe][tranche];
   const s = prog ? prog[semIdx] : null;
-  if(!s){ alert('Programme introuvable pour ce profil.'); return; }
+  if(!s){ 
+    alert('Programme introuvable.\nProfil : ' + (c.sexe||'?') + ', ' + ageReel + ' ans, tranche ' + tranche + ', objectif ' + c.objectif + ', semaine ' + sem);
+    return; 
+  }
   const massageKey = document.getElementById('sel-massage').value;
   const massage = MASSAGES[massageKey];
   const objLabel = c.objectif==='poids' ? 'Perte de poids' : c.objectif==='muscle' ? 'Renforcement musculaire' : 'Ventre viscéral';
@@ -1083,8 +1090,20 @@ function loadSuivi(){
       return '<div style="font-size:12px;color:var(--text2);padding:3px 0">📅 ' + ch.date + ' : ' + ancLabel + ' → <strong>' + nouvLabel + '</strong></div>';
     }).join('') + '</div>' : '';
   const abosPrecHTML = (c.abosPrecedents||[]).length > 0 ?
-    '<div style="margin-top:.75rem"><div class="fl">Abonnements précédents</div>' +
-    (c.abosPrecedents||[]).map(a => '<div style="font-size:12px;color:var(--text2);padding:2px 0">' + a.label + ' — débuté le ' + a.date + '</div>').join('') + '</div>' : '';
+    '<div style="margin-top:.75rem"><div class="fl">Abonnements précédents (' + (c.abosPrecedents||[]).length + ')</div>' +
+    (c.abosPrecedents||[]).map(a => {
+      const progsStr = (a.programmes||[]).map(p => {
+        const pLabel = p.type==='poids'?'Perte de poids':p.type==='muscle'?'Renforcement':'Ventre viscéral';
+        return pLabel + (p.debut?' ('+p.debut.split('-').reverse().join('/'):'') + (p.fin?' → '+p.fin.split('-').reverse().join('/'):'') + (p.debut?')':'');
+      }).join(', ');
+      const nbSeances = (a.seances||[]).length;
+      return '<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:.5rem .75rem;margin-top:4px;font-size:12px">' +
+        '<div style="font-weight:600">' + a.label + '</div>' +
+        '<div style="color:var(--text2)">' + (a.debut?'Du '+a.debut.split('-').reverse().join('/'):'') + (a.fin?' au '+a.fin.split('-').reverse().join('/'):'') + '</div>' +
+        (progsStr ? '<div style="color:var(--text2)">Programmes : ' + progsStr + '</div>' : '') +
+        (nbSeances ? '<div style="color:var(--text2)">' + nbSeances + ' séance' + (nbSeances>1?'s':'') + ' enregistrée' + (nbSeances>1?'s':'') + '</div>' : '') +
+        '</div>';
+    }).join('') + '</div>' : '';
   const offertesHTML = (c.seancesOffertes||[]).length > 0 ?
     '<div style="margin-top:.75rem"><div class="fl">Séances offertes</div>' +
     (c.seancesOffertes||[]).map(o => '<div style="font-size:12px;color:#3B6D11;padding:2px 0">🎁 ' + o.motif + ' — ' + o.date + '</div>').join('') + '</div>' : '';
@@ -1364,20 +1383,95 @@ function ajouterSeanceOfferte(){
 
 function ajouterAboPrecedent(){
   const container = document.getElementById('abos-precedents-container');
+  const nb = container.querySelectorAll('.abo-precedent-item').length;
   const div = document.createElement('div');
   div.className = 'abo-precedent-item';
-  div.style.cssText = 'background:var(--blue-light);border:1.5px solid var(--blue-border);border-radius:var(--radius-sm);padding:.6rem;margin-bottom:6px';
-  div.innerHTML = '<div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">' +
-    '<div style="flex:1;min-width:130px"><div class="fl">Date début</div><input type="date" class="abo-prec-date" style="margin-bottom:0"></div>' +
-    '<div style="flex:2;min-width:180px"><div class="fl">Abonnement</div><select class="abo-prec-type" style="margin-bottom:0">' +
-    '<optgroup label="4 séances/mois"><option value="4x3">4 séances/mois — 3 mois</option><option value="4x6">4 séances/mois — 6 mois</option><option value="4x12">4 séances/mois — 12 mois</option></optgroup>' +
-    '<optgroup label="6 séances/mois"><option value="6x3">6 séances/mois — 3 mois</option><option value="6x6">6 séances/mois — 6 mois</option><option value="6x12">6 séances/mois — 12 mois</option></optgroup>' +
-    '<optgroup label="8 séances/mois"><option value="8x3">8 séances/mois — 3 mois</option><option value="8x6">8 séances/mois — 6 mois</option><option value="8x12">8 séances/mois — 12 mois</option></optgroup>' +
-    '</select></div>' +
-    '<button type="button" onclick="this.closest(\".abo-precedent-item\").remove()" style="background:var(--red-light);color:var(--red-text);border:1.5px solid var(--red-border);border-radius:6px;padding:6px 10px;font-size:12px;cursor:pointer;align-self:flex-end">X</button>' +
+  div.style.cssText = 'background:var(--blue-light);border:1.5px solid var(--blue-border);border-radius:var(--radius-sm);padding:.85rem;margin-bottom:10px';
+  div.innerHTML =
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem">' +
+      '<div style="font-size:13px;font-weight:700;color:var(--blue-text)">Abonnement ' + (nb+1) + '</div>' +
+      '<button type="button" onclick="this.closest(\".abo-precedent-item\").remove()" style="background:var(--red-light);color:var(--red-text);border:1.5px solid var(--red-border);border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer">✕ Supprimer</button>' +
+    '</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:.6rem">' +
+      '<div><div class="fl">Abonnement</div><select class="abo-prec-type" style="margin-bottom:0">' +
+        '<optgroup label="4/mois"><option value="4x3">4/mois 3 mois</option><option value="4x6">4/mois 6 mois</option><option value="4x12">4/mois 12 mois</option></optgroup>' +
+        '<optgroup label="6/mois"><option value="6x3">6/mois 3 mois</option><option value="6x6">6/mois 6 mois</option><option value="6x12">6/mois 12 mois</option></optgroup>' +
+        '<optgroup label="8/mois"><option value="8x3">8/mois 3 mois</option><option value="8x6">8/mois 6 mois</option><option value="8x12">8/mois 12 mois</option></optgroup>' +
+      '</select></div>' +
+      '<div><div class="fl">Date début</div><input type="date" class="abo-prec-debut" style="margin-bottom:0"></div>' +
+      '<div><div class="fl">Date fin</div><input type="date" class="abo-prec-fin" style="margin-bottom:0"></div>' +
+    '</div>' +
+    '<div style="margin-bottom:.6rem">' +
+      '<div class="fl" style="margin-bottom:4px">Programmes suivis</div>' +
+      '<div class="abo-prec-progs" style="margin-bottom:4px"></div>' +
+      '<button type="button" onclick="ajouterProgPrecedent(this)" style="background:var(--bg);color:var(--blue-text);border:1.5px solid var(--blue-border);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;width:100%">+ Ajouter un programme</button>' +
+    '</div>' +
+    '<div>' +
+      '<div class="fl" style="margin-bottom:4px">Séances effectuées</div>' +
+      '<div style="display:flex;gap:8px;margin-bottom:4px">' +
+        '<input type="number" class="abo-prec-nbseances" placeholder="Nombre" min="0" max="200" style="width:100px;margin-bottom:0" oninput="genererSeancesPrecedentes(this)">' +
+        '<button type="button" onclick="genererSeancesPrecedentes(this.previousElementSibling)" style="background:var(--brown);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer">Générer</button>' +
+      '</div>' +
+      '<div class="abo-prec-seances" style="max-height:250px;overflow-y:auto"></div>' +
+      '<button type="button" onclick="ajouterSeancePrecedente(this)" style="background:var(--bg);color:var(--brown);border:1.5px solid var(--brown);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;width:100%;margin-top:4px">+ Ajouter une séance</button>' +
     '</div>';
   container.appendChild(div);
 }
+
+function ajouterProgPrecedent(btn){
+  const container = btn.previousElementSibling;
+  const div = document.createElement('div');
+  div.className = 'prog-prec-item';
+  div.style.cssText = 'display:flex;gap:6px;align-items:center;margin-bottom:4px;flex-wrap:wrap';
+  div.innerHTML =
+    '<select class="prog-prec-type" style="flex:2;min-width:130px;margin-bottom:0;font-size:12px">' +
+      '<option value="poids">Perte de poids</option>' +
+      '<option value="muscle">Renforcement musculaire</option>' +
+      '<option value="visceral">Ventre viscéral</option>' +
+    '</select>' +
+    '<input type="date" class="prog-prec-debut" style="flex:1;min-width:110px;margin-bottom:0" title="Date début programme">' +
+    '<input type="date" class="prog-prec-fin" style="flex:1;min-width:110px;margin-bottom:0" title="Date fin programme">' +
+    '<button type="button" onclick="this.closest(\".prog-prec-item\").remove()" style="background:var(--red-light);color:var(--red-text);border:1.5px solid var(--red-border);border-radius:6px;padding:3px 7px;font-size:11px;cursor:pointer;flex-shrink:0">✕</button>';
+  container.appendChild(div);
+}
+
+function genererSeancesPrecedentes(input){
+  const nb = parseInt(input.value) || 0;
+  const container = input.closest('.abo-precedent-item').querySelector('.abo-prec-seances');
+  if(nb === 0){ container.innerHTML = ''; return; }
+  if(nb > 200){ alert('Maximum 200 séances'); return; }
+  container.innerHTML = Array.from({length:nb}, (_,i) =>
+    '<div class="seance-prec-item" style="display:flex;align-items:center;gap:6px;margin-bottom:4px">' +
+    '<div style="font-size:11px;color:var(--text2);min-width:55px">Séance ' + (i+1) + '</div>' +
+    '<input type="date" class="seance-prec-date" style="flex:1;margin-bottom:0">' +
+    '<select class="seance-prec-prog" style="flex:1;margin-bottom:0;font-size:11px">' +
+      '<option value="poids">Perte de poids</option>' +
+      '<option value="muscle">Renforcement</option>' +
+      '<option value="visceral">Ventre viscéral</option>' +
+    '</select>' +
+    '<button type="button" onclick="this.closest(\".seance-prec-item\").remove()" style="background:var(--red-light);color:var(--red-text);border:none;border-radius:4px;padding:3px 6px;font-size:10px;cursor:pointer">✕</button>' +
+    '</div>'
+  ).join('');
+}
+
+function ajouterSeancePrecedente(btn){
+  const container = btn.previousElementSibling;
+  const nb = container.querySelectorAll('.seance-prec-item').length;
+  const div = document.createElement('div');
+  div.className = 'seance-prec-item';
+  div.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:4px';
+  div.innerHTML =
+    '<div style="font-size:11px;color:var(--text2);min-width:55px">Séance ' + (nb+1) + '</div>' +
+    '<input type="date" class="seance-prec-date" style="flex:1;margin-bottom:0">' +
+    '<select class="seance-prec-prog" style="flex:1;margin-bottom:0;font-size:11px">' +
+      '<option value="poids">Perte de poids</option>' +
+      '<option value="muscle">Renforcement</option>' +
+      '<option value="visceral">Ventre viscéral</option>' +
+    '</select>' +
+    '<button type="button" onclick="this.closest(\".seance-prec-item\").remove()" style="background:var(--red-light);color:var(--red-text);border:none;border-radius:4px;padding:3px 6px;font-size:10px;cursor:pointer">✕</button>';
+  container.appendChild(div);
+}
+
 
 function getSeancesOffertes(){
   return Array.from(document.querySelectorAll('.offerte-item')).map(el => ({
