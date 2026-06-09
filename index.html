@@ -319,6 +319,43 @@ select:focus,input:focus{border-color:var(--brown)}
   </div>
 </div>
 
+<!-- MODAL RENOUVELLEMENT -->
+<div id="modal-renouvellement" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center">
+  <div style="background:var(--card);border-radius:var(--radius);padding:1.5rem;max-width:400px;width:90%;max-height:90vh;overflow-y:auto;margin:auto;margin-top:5vh">
+    <div class="st">Renouveler l'abonnement</div>
+    <div id="modal-renouv-info" style="background:var(--brown-light);border-radius:var(--radius-sm);padding:.75rem;margin-bottom:1rem;font-size:13px;color:var(--brown)"></div>
+    <div class="fr"><div class="fl">Nouvel abonnement</div>
+      <select id="renouv-abo">
+        <optgroup label="4 seances / mois">
+          <option value="4x3">4 seances/mois — 3 mois (12 seances)</option>
+          <option value="4x6">4 seances/mois — 6 mois (24 seances)</option>
+          <option value="4x12">4 seances/mois — 12 mois (48 seances)</option>
+        </optgroup>
+        <optgroup label="6 seances / mois">
+          <option value="6x3">6 seances/mois — 3 mois (18 seances)</option>
+          <option value="6x6">6 seances/mois — 6 mois (36 seances)</option>
+          <option value="6x12">6 seances/mois — 12 mois (72 seances)</option>
+        </optgroup>
+        <optgroup label="8 seances / mois">
+          <option value="8x3">8 seances/mois — 3 mois (24 seances)</option>
+          <option value="8x6">8 seances/mois — 6 mois (48 seances)</option>
+          <option value="8x12">8 seances/mois — 12 mois (96 seances)</option>
+        </optgroup>
+      </select>
+    </div>
+    <div class="fr"><div class="fl">Date de debut du nouvel abonnement</div>
+      <input type="date" id="renouv-date">
+    </div>
+    <div class="fr"><div class="fl">Seances offertes (facultatif)</div>
+      <input type="number" id="renouv-offerts" placeholder="ex: 2" min="0" max="50" style="width:120px">
+    </div>
+    <div style="display:flex;gap:8px;margin-top:.5rem">
+      <button onclick="confirmerRenouvellement()" style="background:var(--brown);color:#fff;border:none;border-radius:var(--radius-sm);padding:10px;font-size:13px;font-weight:600;cursor:pointer;flex:1">Confirmer</button>
+      <button onclick="fermerRenouvellement()" style="background:var(--bg);color:var(--text);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:10px;font-size:13px;cursor:pointer;flex:1">Annuler</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxTb1utVSl-jXEXGUQ_bVVCddX7YBIcExFmiyxT0iNBeltebz2oZK_N2cek6C3_q5C6/exec';
 
@@ -561,6 +598,108 @@ function restaurerBrouillon(){
     if(formCard) formCard.insertBefore(banner, formCard.firstChild);
     setTimeout(() => banner.remove(), 4000);
   } catch(e){}
+}
+
+
+// ===== RENOUVELLEMENT ABONNEMENT =====
+let _renouvClientIdx = null;
+
+function ouvrirRenouvellement(clientIdx){
+  if(clientIdx === '' || clientIdx === null) return;
+  _renouvClientIdx = parseInt(clientIdx);
+  const c = clients[_renouvClientIdx];
+  if(!c) return;
+  // Set default date to today
+  document.getElementById('renouv-date').value = new Date().toISOString().slice(0,10);
+  document.getElementById('renouv-abo').value = c.abonnement || '4x6';
+  document.getElementById('renouv-offerts').value = '';
+  // Show info about current abo
+  const statut = getStatutSeances(c);
+  const seancesFaites = statut ? statut.seancesFaites : 0;
+  document.getElementById('modal-renouv-info').innerHTML =
+    '<strong>' + c.nom + '</strong><br>' +
+    'Abonnement actuel : ' + aboLabel(c.abonnement) + '<br>' +
+    'Debut : ' + (c.dateDebut ? new Date(c.dateDebut).toLocaleDateString('fr-FR') : '—') + '<br>' +
+    'Seances effectuees : ' + seancesFaites;
+  const modal = document.getElementById('modal-renouvellement');
+  modal.style.display = 'flex';
+}
+
+function fermerRenouvellement(){
+  document.getElementById('modal-renouvellement').style.display = 'none';
+  _renouvClientIdx = null;
+}
+
+function confirmerRenouvellement(){
+  if(_renouvClientIdx === null) return;
+  const c = clients[_renouvClientIdx];
+  if(!c) return;
+  const nouveauAbo = document.getElementById('renouv-abo').value;
+  const nouvelleDate = document.getElementById('renouv-date').value;
+  const offerts = parseInt(document.getElementById('renouv-offerts').value) || 0;
+  if(!nouveauAbo || !nouvelleDate){ alert('Merci de remplir le type abonnement et la date de debut.'); return; }
+
+  // Archive current abo in precedents
+  if(!c.abosPrecedents) c.abosPrecedents = [];
+  const statut = getStatutSeances(c);
+  const seancesFaites = statut ? statut.seancesFaites : 0;
+
+  // Build programmes from changements
+  const progs = [];
+  if(c.changementsProgramme && c.changementsProgramme.length > 0){
+    // Build from change history
+    let lastDate = c.dateDebut;
+    c.changementsProgramme.forEach(ch => {
+      const nbSeancesInProg = (c.historique||[]).filter(h => {
+        if(!h.date) return false;
+        const parts = h.date.split(' ')[0].split('/');
+        if(parts.length!==3) return false;
+        const d = new Date(parts[2]+'-'+parts[1]+'-'+parts[0]);
+        const start = new Date(lastDate);
+        const end = new Date(ch.dateISO || ch.date);
+        return d >= start && d < end;
+      }).length;
+      if(nbSeancesInProg > 0) progs.push({type: ch.ancienProg, nb: nbSeancesInProg});
+      lastDate = ch.dateISO || ch.date;
+    });
+    // Add remaining seances with current programme
+    const nbRestant = seancesFaites - progs.reduce((s,p)=>s+p.nb,0);
+    if(nbRestant > 0) progs.push({type: c.objectif, nb: nbRestant});
+  } else {
+    progs.push({type: c.objectif, nb: seancesFaites});
+  }
+
+  // Calculate end date of current abo
+  const aboActuel = parseAbo(c.abonnement);
+  const dateFinActuel = new Date(c.dateDebut);
+  if(aboActuel) dateFinActuel.setMonth(dateFinActuel.getMonth() + aboActuel.mois);
+
+  c.abosPrecedents.push({
+    type: c.abonnement,
+    label: aboLabel(c.abonnement),
+    debut: c.dateDebut,
+    fin: dateFinActuel.toISOString().slice(0,10),
+    programmes: progs,
+    totalSeances: seancesFaites,
+    offerts: (c.seancesOffertes||[]).reduce((s,o)=>s+(o.nb||1),0)
+  });
+
+  // Start new abo
+  c.abonnement = nouveauAbo;
+  c.dateDebut = nouvelleDate;
+  c.semaine = 1;
+  c.seancesOffertes = offerts > 0 ? [{nb:offerts, motif:'Offerte', date:'—'}] : [];
+  c.changementsProgramme = [];
+  c.dateDernierChangement = null;
+
+  save();
+  fermerRenouvellement();
+
+  // Refresh suivi
+  loadSuivi();
+
+  // Show confirmation
+  alert('Abonnement renouvelé ! ' + aboLabel(nouveauAbo) + ' débuté le ' + new Date(nouvelleDate).toLocaleDateString('fr-FR'));
 }
 
 function deconnexion(){
@@ -1079,6 +1218,7 @@ function loadSuivi(){
   document.getElementById('reco-card').style.display = 'none';
   if(!idx){ content.style.display='none'; return; }
   content.style.display = 'block';
+  window._currentSuiviIdx = parseInt(idx);
   // Pre-fill date/heure with now
   const nowS = new Date();
   const dateEl = document.getElementById('m-date');
@@ -1138,8 +1278,9 @@ function loadSuivi(){
     '<div class="fl">Progression programme EMS</div>' +
     '<div class="pbw"><div class="pb" style="width:' + pctSem + '%"></div></div>' +
     '<div style="font-size:11px;color:var(--text2);text-align:right">' + pctSem + '%</div>' +
-    (statut&&statut.aboTermine ? '<div class="alert alert-red" style="margin-top:.75rem">🔴 Abonnement terminé depuis le ' + statut.dateFin.toLocaleDateString('fr-FR') + ' — renouvellement nécessaire !</div>' :
+    (statut&&statut.aboTermine ? '<div class="alert alert-red" style="margin-top:.75rem">🔴 Abonnement terminé depuis le ' + statut.dateFin.toLocaleDateString('fr-FR') + '</div>' :
      statut&&statut.moisRestants<=1 ? '<div class="alert alert-orange" style="margin-top:.75rem">🔔 Abonnement se termine bientôt !</div>' : '') +
+    '<div style="margin-top:.75rem"><button onclick="ouvrirRenouvellement(window._currentSuiviIdx)" style="background:var(--brown);color:#fff;border:none;border-radius:var(--radius-sm);padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;width:100%">Renouveler l\'abonnement</button></div>' +
     changementsHTML + abosPrecHTML + offertesHTML;
   const histo = c.historique || [];
   if(histo.length){
