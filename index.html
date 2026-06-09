@@ -458,9 +458,14 @@ function importerDonnees(){
       const data = JSON.parse(e.target.result);
       if(data.clients && Array.isArray(data.clients)){
         clients = data.clients;
+        if(data.coachs && Array.isArray(data.coachs)) coachs = data.coachs;
         save();
+        // Refresh all UI
+        refreshSelects();
+        renderClients('');
         document.getElementById('succ-import').style.display='block';
-        setTimeout(()=>document.getElementById('succ-import').style.display='none', 3000);
+        document.getElementById('succ-import').textContent = '✅ ' + clients.length + ' clients restaurés !';
+        setTimeout(()=>document.getElementById('succ-import').style.display='none', 4000);
       }
     } catch(e){
       document.getElementById('import-error').style.display='block';
