@@ -451,27 +451,31 @@ function exporterDonnees(){
 }
 function importerDonnees(){
   const file = document.getElementById('import-file').files[0];
-  if(!file) return;
+  if(!file){ alert('Choisissez un fichier !'); return; }
   const reader = new FileReader();
-  reader.onload = e => {
+  reader.onload = function(e) {
     try {
-      const data = JSON.parse(e.target.result);
-      if(data.clients && Array.isArray(data.clients)){
+      const text = e.target.result;
+      const data = JSON.parse(text);
+      if(data && data.clients && Array.isArray(data.clients) && data.clients.length > 0){
         clients = data.clients;
         if(data.coachs && Array.isArray(data.coachs)) coachs = data.coachs;
-        save();
-        // Refresh all UI
+        localStorage.setItem('s4f_clients', JSON.stringify(clients));
+        localStorage.setItem('s4f_coachs', JSON.stringify(coachs));
         refreshSelects();
         renderClients('');
+        document.getElementById('import-error').style.display='none';
         document.getElementById('succ-import').style.display='block';
         document.getElementById('succ-import').textContent = '✅ ' + clients.length + ' clients restaurés !';
-        setTimeout(()=>document.getElementById('succ-import').style.display='none', 4000);
+        setTimeout(function(){ document.getElementById('succ-import').style.display='none'; }, 5000);
+      } else {
+        alert('Fichier invalide : ' + JSON.stringify(Object.keys(data||{})));
       }
-    } catch(e){
-      document.getElementById('import-error').style.display='block';
+    } catch(err){
+      alert('Erreur de lecture : ' + err.message);
     }
   };
-  reader.readAsText(file);
+  reader.readAsText(file, 'UTF-8');
 }
 
 // ========== CONNEXION ==========
