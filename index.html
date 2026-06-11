@@ -774,20 +774,33 @@ function getStatutSeances(c){
   const ratio = joursEcoules / joursTotal;
   const seancesPrevues = Math.floor(ratio * abo.total);
 
-  const seancesHisto = (c.historique || []).length;
+  const debutAbo = new Date(c.dateDebut);
+  const seancesHisto = (c.historique || []).filter(h => {
+    if(!h.date) return false;
+    const parts = h.date.split(' ')[0].split('/');
+    if(parts.length !== 3) return false;
+    const d = new Date(parts[2]+'-'+parts[1]+'-'+parts[0]);
+    if(isNaN(d.getTime())) return false;
+    return d >= debutAbo;
+  }).length;
   const seancesOffertes = (c.seancesOffertes || []).reduce((sum, o) => sum + (o.nb || 1), 0);
   const seancesFaites = seancesHisto + seancesOffertes;
   const retard = seancesPrevues - seancesFaites;
   const restantes = Math.max(0, abo.total - seancesFaites);
 
   const offertesCount = (c.seancesOffertes||[]).reduce((s,o)=>s+(o&&o.nb?o.nb:1),0);
-  const reportCount = getReportSeances(c);
-  const totalFinal = abo.total + offertesCount + reportCount;
-  return {seancesFaites, seancesPrevues, retard, restantes:Math.max(0,totalFinal-seancesFaites), total:totalFinal, reportCount, moisRestants, aboTermine, dateFin};
+  const totalFinal = abo.total + offertesCount;
+  // Grace period: 1 month after abo end
+  const dateGrace = new Date(dateFin);
+  dateGrace.setMonth(dateGrace.getMonth() + 1);
+  const inGrace = !aboTermine ? false : now < dateGrace;
+  const graceExpired = aboTermine && now >= dateGrace;
+  return {seancesFaites, seancesPrevues, retard, restantes:Math.max(0,totalFinal-seancesFaites), total:totalFinal, moisRestants, aboTermine, dateFin, inGrace, graceExpired, dateGrace};
 }
 function getStatutIcon(statut){
   if(!statut) return '⚪';
-  if(statut.aboTermine && statut.retard > 0) return '🔴';
+  if(statut.graceExpired) return '🔴';
+  if(statut.inGrace) return '🟡';
   if(statut.aboTermine) return '✅';
   if(statut.retard <= 0) return '✅';
   if(statut.retard <= 2) return '🟡';
@@ -985,10 +998,15 @@ function loadClientProg(){
   const objLabel = c.objectif==='poids' ? 'Perte de poids' : c.objectif==='muscle' ? 'Renforcement musculaire' : 'Ventre viscéral';
   const statut = getStatutSeances(c);
   let alerts = '';
-  if(statut && statut.aboTermine && statut.retard > 0){
-    alerts += '<div class="alert alert-red">🔴 Abonnement terminé depuis le ' + statut.dateFin.toLocaleDateString('fr-FR') + ' — renouvellement nécessaire !</div>';
+  if(statut && statut.graceExpired){
+    alerts += '<div class="alert alert-red">🔴 Abonnement expiré — mois de grâce dépassé. Pensez à renouveler !</div>';
+  } else if(statut && statut.inGrace){
+    const joursRestants = Math.ceil((statut.dateGrace - new Date()) / (1000*60*60*24));
+    alerts += '<div class="alert alert-orange">🟡 Abonnement terminé — mois de grâce en cours. ' + statut.restantes + ' séance' + (statut.restantes>1?'s':'') + ' à planifier avant le ' + statut.dateGrace.toLocaleDateString('fr-FR') + ' (' + joursRestants + ' jours)</div>';
+  } else if(statut && statut.aboTermine){
+    alerts += '<div class="alert alert-green">✅ Abonnement complété !</div>';
   } else if(statut && statut.moisRestants <= 1 && !statut.aboTermine){
-    alerts += '<div class="alert alert-orange">🔔 Abonnement se termine dans ' + statut.moisRestants + ' mois !</div>';
+    alerts += '<div class="alert alert-orange">🔔 Abonnement se termine bientôt !</div>';
   }
   if(statut && statut.retard >= 3){
     alerts += '<div class="alert alert-red">⚠️ ' + statut.retard + ' séances de retard !</div>';
@@ -1002,7 +1020,7 @@ function loadClientProg(){
   let seancesFaites = (c.historique||[]).length;
   try { seancesFaites += (c.seancesOffertes||[]).reduce((s,o)=>s+(o&&o.nb?o.nb:1),0); } catch(e){}
   const seanceEnCours = seancesFaites + 1;
-  const reportSeances = getReportSeances(c);
+
   const tenueInfo = [c.taille?c.taille+'cm':'', c.tenue?'Tenue '+c.tenue:'', c.gilet?'Gilet '+c.gilet:''].filter(Boolean).join(' — ');
   const histo = c.historique || [];
   const derniereSeance = histo.length > 0 ? histo[histo.length-1].date : null;
@@ -1018,7 +1036,7 @@ function loadClientProg(){
       '<div style="margin-top:4px;font-size:12px;background:rgba(255,255,255,0.15);border-radius:6px;padding:3px 8px;display:inline-block">' +
         seancesFaites + ' séance' + (seancesFaites>1?'s':'') + ' validée' + (seancesFaites>1?'s':'') +
         ' — Séance ' + seanceEnCours + ' en cours' +
-        (reportSeances>0 ? ' (+ ' + reportSeances + ' reportée' + (reportSeances>1?'s':'') + ')' : '') +
+
       '</div>' +
     '</div>' +
     '<div style="text-align:right"><div style="font-size:18px;font-weight:700">' + pct + '%</div>' +
@@ -1310,7 +1328,9 @@ function loadSuivi(){
     '<div class="fl">Progression programme EMS</div>' +
     '<div class="pbw"><div class="pb" style="width:' + pctSem + '%"></div></div>' +
     '<div style="font-size:11px;color:var(--text2);text-align:right">' + pctSem + '%</div>' +
-    (statut&&statut.aboTermine ? '<div class="alert alert-red" style="margin-top:.75rem">🔴 Abonnement terminé depuis le ' + statut.dateFin.toLocaleDateString('fr-FR') + '</div>' :
+    (statut&&statut.graceExpired ? '<div class="alert alert-red" style="margin-top:.75rem">🔴 Abonnement expiré — mois de grâce dépassé</div>' :
+     statut&&statut.inGrace ? '<div class="alert alert-orange" style="margin-top:.75rem">🟡 Mois de grâce — ' + statut.restantes + ' séance' + (statut.restantes>1?'s':'') + ' à planifier avant le ' + statut.dateGrace.toLocaleDateString('fr-FR') + '</div>' :
+     statut&&statut.aboTermine ? '<div class="alert alert-green" style="margin-top:.75rem">✅ Abonnement complété !</div>' :
      statut&&statut.moisRestants<=1 ? '<div class="alert alert-orange" style="margin-top:.75rem">🔔 Abonnement se termine bientôt !</div>' : '') +
     '<div style="margin-top:.75rem"><button onclick="ouvrirRenouvellement(window._currentSuiviIdx)" style="background:var(--brown);color:#fff;border:none;border-radius:var(--radius-sm);padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;width:100%">Renouveler l\'abonnement</button></div>' +
     changementsHTML + abosPrecHTML + offertesHTML;
