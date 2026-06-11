@@ -274,6 +274,12 @@ select:focus,input:focus{border-color:var(--brown)}
         </div>
       </div>
       <div style="border-top:1.5px solid var(--border);margin:.75rem 0;padding-top:.75rem">
+        <div class="st" style="font-size:15px;margin-bottom:.5rem">Programmes suivis (abonnement actuel)</div>
+        <p style="font-size:12px;color:var(--text2);margin-bottom:.75rem;line-height:1.5">Si la cliente a changé de programme en cours d'abonnement, ajoute chaque programme avec sa date de début et le nombre de séances effectuées. Le dernier programme = programme actuel.</p>
+        <div id="programmes-actuels-container"></div>
+        <button type="button" onclick="ajouterProgrammeActuel()" style="background:var(--bg);color:var(--brown);border:1.5px solid var(--brown);border-radius:var(--radius-sm);padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;margin-top:4px;width:100%">+ Ajouter un programme</button>
+      </div>
+      <div style="border-top:1.5px solid var(--border);margin:.75rem 0;padding-top:.75rem">
         <div class="st" style="font-size:15px;margin-bottom:.5rem">Abonnements précédents</div>
         <p style="font-size:12px;color:var(--text2);margin-bottom:.75rem;line-height:1.5">Pour chaque abonnement passé, tu peux saisir le type, les dates, le ou les programmes suivis et toutes les séances effectuées.</p>
         <div id="abos-precedents-container"></div>
@@ -1337,6 +1343,11 @@ function loadSuivi(){
       (statut&&statut.reportCount>0 ? '<div class="mi"><div class="ml">Report ancien abo</div><div class="mv" style="color:#0C447C">+' + statut.reportCount + ' séance' + (statut.reportCount>1?'s':'') + '</div></div>' : '') +
       '<div class="mi"><div class="ml">Statut</div><div class="mv" style="font-size:12px">' + getStatutIcon(statut) + ' ' + (statut?(statut.retard<=0?'À jour':statut.retard+' de retard'):'—') + '</div></div>' +
     '</div>' +
+    // Show offerts detail if any
+    (c.seancesOffertes && c.seancesOffertes.length > 0 ?
+      '<div style="font-size:11px;color:#3B6D11;background:#EAF3DE;border:1px solid #C0DD97;border-radius:6px;padding:4px 10px;margin-bottom:.5rem">' +
+      '🎁 ' + (c.seancesOffertes.reduce((s,o)=>s+(o.nb||1),0)) + ' séance' + (c.seancesOffertes.reduce((s,o)=>s+(o.nb||1),0)>1?'s':'') + ' offerte' + (c.seancesOffertes.reduce((s,o)=>s+(o.nb||1),0)>1?'s':'') + ' incluse' + (c.seancesOffertes.reduce((s,o)=>s+(o.nb||1),0)>1?'s':'') + ' dans le total' +
+      '</div>' : '') +
     '<div class="fl">Progression abonnement</div>' +
     '<div class="pbw"><div class="pb" style="width:' + pctAbo + '%"></div></div>' +
     '<div style="font-size:11px;color:var(--text2);text-align:right;margin-bottom:.75rem">' + pctAbo + '%</div>' +
@@ -1638,6 +1649,46 @@ function ajouterAboPrecedent(){
 }
 
 
+function ajouterProgrammeActuel(){
+  const container = document.getElementById('programmes-actuels-container');
+  const nb = container.querySelectorAll('.prog-actuel-item').length;
+  const div = document.createElement('div');
+  div.className = 'prog-actuel-item';
+  div.style.cssText = 'background:#EAF3DE;border:1.5px solid #C0DD97;border-radius:var(--radius-sm);padding:.6rem;margin-bottom:6px';
+  div.innerHTML =
+    '<div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">' +
+      '<div style="flex:2;min-width:150px"><div class="fl">Programme</div>' +
+        '<select class="prog-actuel-type" style="margin-bottom:0">' +
+          '<option value="poids">Perte de poids</option>' +
+          '<option value="muscle">Renforcement musculaire</option>' +
+          '<option value="visceral">Ventre viscéral</option>' +
+        '</select>' +
+      '</div>' +
+      '<div style="flex:1;min-width:110px"><div class="fl">Date début</div>' +
+        '<input type="date" class="prog-actuel-debut" style="margin-bottom:0">' +
+      '</div>' +
+      '<div style="flex:1;min-width:80px"><div class="fl">Nb séances</div>' +
+        '<input type="number" class="prog-actuel-nb" placeholder="ex: 10" min="0" max="200" style="margin-bottom:0;width:80px">' +
+      '</div>' +
+      '<button type="button" onclick="supprimerProgrammeActuel(this)" style="background:var(--red-light);color:var(--red-text);border:1.5px solid var(--red-border);border-radius:6px;padding:6px 10px;font-size:12px;cursor:pointer;flex-shrink:0;align-self:flex-end">✕</button>' +
+    '</div>' +
+    (nb === 0 ? '<div style="font-size:10px;color:#3B6D11;margin-top:3px">Premier programme</div>' : '');
+  container.appendChild(div);
+}
+
+function supprimerProgrammeActuel(btn){
+  const item = btn.closest('.prog-actuel-item');
+  if(item) item.remove();
+}
+
+function getProgrammesActuels(){
+  return Array.from(document.querySelectorAll('.prog-actuel-item')).map(el => ({
+    type: el.querySelector('.prog-actuel-type').value,
+    debut: el.querySelector('.prog-actuel-debut').value,
+    nb: parseInt(el.querySelector('.prog-actuel-nb').value) || 0
+  })).filter(p => p.type);
+}
+
 function supprimerAboPrecedent(btn){
   const item = btn.closest('.abo-precedent-item') || btn.parentElement.parentElement;
   if(item) item.remove();
@@ -1705,7 +1756,20 @@ function ajouterClient(){
 
   const overrideEl = document.getElementById('n-objectif-override');
   const override = overrideEl ? overrideEl.value : '';
-  const objectif = override || (graisse==='viscerale' ? 'visceral' : graisse==='generale' ? 'poids' : 'muscle');
+  // Get programmes actuels - last one defines current objectif
+  const programmesActuels = getProgrammesActuels();
+  const dernierProg = programmesActuels.length > 0 ? programmesActuels[programmesActuels.length-1].type : null;
+  const objectif = dernierProg || override || (graisse==='viscerale' ? 'visceral' : graisse==='generale' ? 'poids' : 'muscle');
+  // Build changements programme from programmesActuels
+  const changementsProgramme = programmesActuels.slice(0,-1).map((p,i) => ({
+    date: programmesActuels[i+1] ? (programmesActuels[i+1].debut ? programmesActuels[i+1].debut.split('-').reverse().join('/') : '') : '',
+    dateISO: programmesActuels[i+1] ? programmesActuels[i+1].debut : '',
+    ancienProg: p.type,
+    nouveauProg: programmesActuels[i+1].type,
+    seancesAvant: p.nb,
+    coach: currentUser ? currentUser.nom : '—'
+  }));
+  const dateDernierChangement = programmesActuels.length > 1 ? programmesActuels[programmesActuels.length-1].debut : null;
   const zone = document.getElementById('n-zone').value || '';
 
   // Taille / tenue / gilet
@@ -1749,7 +1813,7 @@ function ajouterClient(){
       nom, age, dateNaissance, sexe, niveau, taille, tenue, gilet,
       objectif, zone, abonnement:abo, dateDebut:date,
       semaine, historique, seancesOffertes, abosPrecedents,
-      mesures:[], dernierResultat:'', changementsProgramme:[]
+      mesures:[], dernierResultat:'', changementsProgramme, dateDernierChangement
     });
   }
 
@@ -1797,6 +1861,27 @@ function editClient(idx){
   document.getElementById('n-age').value = c.dateNaissance || '';
   document.getElementById('n-sexe').value = c.sexe;
   document.getElementById('n-niveau').value = c.niveau || '';
+  // Restore programmes actuels
+  const pacEl = document.getElementById('programmes-actuels-container');
+  if(pacEl){ pacEl.innerHTML = ''; }
+  if(c.changementsProgramme && c.changementsProgramme.length > 0 && pacEl){
+    // Rebuild from changements + current programme
+    const allProgs = [];
+    let nbCumul = 0;
+    c.changementsProgramme.forEach((ch, i) => {
+      allProgs.push({type: ch.ancienProg, debut: ch.dateISO || '', nb: ch.seancesAvant || 0});
+    });
+    // Add current programme
+    allProgs.push({type: c.objectif, debut: c.dateDernierChangement || '', nb: (c.historique||[]).length - allProgs.reduce((s,p)=>s+p.nb,0)});
+    allProgs.forEach(() => ajouterProgrammeActuel());
+    pacEl.querySelectorAll('.prog-actuel-item').forEach((el, i) => {
+      if(allProgs[i]){
+        el.querySelector('.prog-actuel-type').value = allProgs[i].type || 'poids';
+        if(allProgs[i].debut) el.querySelector('.prog-actuel-debut').value = allProgs[i].debut;
+        if(allProgs[i].nb) el.querySelector('.prog-actuel-nb').value = allProgs[i].nb;
+      }
+    });
+  }
   const tailleEl = document.getElementById('n-taille'); if(tailleEl) tailleEl.value = c.taille || '';
   const tenueEl = document.getElementById('n-tenue'); if(tenueEl) tenueEl.value = c.tenue || '';
   const giletEl = document.getElementById('n-gilet'); if(giletEl) giletEl.value = c.gilet || '';
