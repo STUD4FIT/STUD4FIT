@@ -882,7 +882,22 @@ function nav(id, btn){
     document.getElementById('sel-suivi').value = '';
     document.getElementById('suivi-content').style.display = 'none';
   }
-  if(id === 'nouveau' && !window._editingClient) setTimeout(restaurerFormulaire, 50);
+  if(id === 'nouveau'){
+    if(!window._editingClient){
+      // Only restore if there's an actual in-progress draft (not a completed client)
+      const draft = localStorage.getItem('s4f_form_draft');
+      if(draft){
+        try {
+          const d = JSON.parse(draft);
+          // Only restore if draft has no edit index (it's a new client draft)
+          if(!d.editIdx || d.editIdx === '') setTimeout(restaurerFormulaire, 50);
+          else { localStorage.removeItem('s4f_form_draft'); resetForm(); }
+        } catch(e){ resetForm(); }
+      } else {
+        resetForm();
+      }
+    }
+  }
   if(id === 'clients'){
     document.getElementById('search-clients').value = '';
     renderClients('');
@@ -999,10 +1014,10 @@ function loadClientProg(){
   const statut = getStatutSeances(c);
   let alerts = '';
   if(statut && statut.graceExpired){
-    alerts += '<div class="alert alert-red">🔴 Abonnement expiré — mois de grâce dépassé. Pensez à renouveler !</div>';
+    alerts += '<div class="alert alert-red">🔴 Abonnement expiré — mois de rattrapage dépassé. Pensez à renouveler !</div>';
   } else if(statut && statut.inGrace){
     const joursRestants = Math.ceil((statut.dateGrace - new Date()) / (1000*60*60*24));
-    alerts += '<div class="alert alert-orange">🟡 Abonnement terminé — mois de grâce en cours. ' + statut.restantes + ' séance' + (statut.restantes>1?'s':'') + ' à planifier avant le ' + statut.dateGrace.toLocaleDateString('fr-FR') + ' (' + joursRestants + ' jours)</div>';
+    alerts += '<div class="alert alert-orange">🟡 Abonnement terminé — mois de rattrapage en cours. ' + statut.restantes + ' séance' + (statut.restantes>1?'s':'') + ' à planifier avant le ' + statut.dateGrace.toLocaleDateString('fr-FR') + ' (' + joursRestants + ' jours)</div>';
   } else if(statut && statut.aboTermine){
     alerts += '<div class="alert alert-green">✅ Abonnement complété !</div>';
   } else if(statut && statut.moisRestants <= 1 && !statut.aboTermine){
@@ -1328,8 +1343,8 @@ function loadSuivi(){
     '<div class="fl">Progression programme EMS</div>' +
     '<div class="pbw"><div class="pb" style="width:' + pctSem + '%"></div></div>' +
     '<div style="font-size:11px;color:var(--text2);text-align:right">' + pctSem + '%</div>' +
-    (statut&&statut.graceExpired ? '<div class="alert alert-red" style="margin-top:.75rem">🔴 Abonnement expiré — mois de grâce dépassé</div>' :
-     statut&&statut.inGrace ? '<div class="alert alert-orange" style="margin-top:.75rem">🟡 Mois de grâce — ' + statut.restantes + ' séance' + (statut.restantes>1?'s':'') + ' à planifier avant le ' + statut.dateGrace.toLocaleDateString('fr-FR') + '</div>' :
+    (statut&&statut.graceExpired ? '<div class="alert alert-red" style="margin-top:.75rem">🔴 Abonnement expiré — mois de rattrapage dépassé</div>' :
+     statut&&statut.inGrace ? '<div class="alert alert-orange" style="margin-top:.75rem">🟡 Mois de rattrapage — ' + statut.restantes + ' séance' + (statut.restantes>1?'s':'') + ' à planifier avant le ' + statut.dateGrace.toLocaleDateString('fr-FR') + '</div>' :
      statut&&statut.aboTermine ? '<div class="alert alert-green" style="margin-top:.75rem">✅ Abonnement complété !</div>' :
      statut&&statut.moisRestants<=1 ? '<div class="alert alert-orange" style="margin-top:.75rem">🔔 Abonnement se termine bientôt !</div>' : '') +
     '<div style="margin-top:.75rem"><button onclick="ouvrirRenouvellement(window._currentSuiviIdx)" style="background:var(--brown);color:#fff;border:none;border-radius:var(--radius-sm);padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;width:100%">Renouveler l\'abonnement</button></div>' +
@@ -1622,6 +1637,11 @@ function ajouterAboPrecedent(){
   container.appendChild(div);
 }
 
+
+function supprimerAboPrecedent(btn){
+  const item = btn.closest('.abo-precedent-item') || btn.parentElement.parentElement;
+  if(item) item.remove();
+}
 
 function ajouterProgPrecedent(btn){
   const container = btn.previousElementSibling;
