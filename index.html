@@ -1864,21 +1864,25 @@ function editClient(idx){
   // Restore programmes actuels
   const pacEl = document.getElementById('programmes-actuels-container');
   if(pacEl){ pacEl.innerHTML = ''; }
-  if(c.changementsProgramme && c.changementsProgramme.length > 0 && pacEl){
-    // Rebuild from changements + current programme
-    const allProgs = [];
-    let nbCumul = 0;
-    c.changementsProgramme.forEach((ch, i) => {
+  // Build list of all programmes from changements + current
+  const allProgs = [];
+  if(c.changementsProgramme && c.changementsProgramme.length > 0){
+    c.changementsProgramme.forEach(ch => {
       allProgs.push({type: ch.ancienProg, debut: ch.dateISO || '', nb: ch.seancesAvant || 0});
     });
-    // Add current programme
-    allProgs.push({type: c.objectif, debut: c.dateDernierChangement || '', nb: (c.historique||[]).length - allProgs.reduce((s,p)=>s+p.nb,0)});
+  }
+  // Add current programme
+  const nbDejaPris = allProgs.reduce((s,p)=>s+p.nb,0);
+  const nbActuel = Math.max(0, (c.historique||[]).length - nbDejaPris);
+  allProgs.push({type: c.objectif, debut: c.dateDernierChangement || '', nb: nbActuel});
+  
+  if(pacEl && allProgs.length > 0){
     allProgs.forEach(() => ajouterProgrammeActuel());
     pacEl.querySelectorAll('.prog-actuel-item').forEach((el, i) => {
       if(allProgs[i]){
         el.querySelector('.prog-actuel-type').value = allProgs[i].type || 'poids';
         if(allProgs[i].debut) el.querySelector('.prog-actuel-debut').value = allProgs[i].debut;
-        if(allProgs[i].nb) el.querySelector('.prog-actuel-nb').value = allProgs[i].nb;
+        el.querySelector('.prog-actuel-nb').value = allProgs[i].nb || 0;
       }
     });
   }
