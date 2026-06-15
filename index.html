@@ -124,7 +124,8 @@ select:focus,input:focus{border-color:var(--brown)}
         <div class="fr"><div class="fl">Utiliser la tranche d'âge d'un autre profil</div>
           <select id="tranche-override" onchange="afficherProg()">
             <option value="">-- Tranche automatique --</option>
-            <option value="20-35">20-35 ans</option>
+            <option value="25-35">25-35 ans</option>
+            <option value="20-35">20-35 ans (homme)</option>
             <option value="35-45">35-45 ans</option>
             <option value="45-55">45-55 ans</option>
             <option value="55-65">55-65 ans</option>
@@ -514,7 +515,7 @@ function ouvrirSession(coach){
 
 function verifierCode(){
   const code = document.getElementById('lock-code').value;
-  const coach = coachs.find(c => c.code === code);
+  const coach = coachs.find(c => c.code.toUpperCase() === code.toUpperCase().trim());
   if(coach){
     ouvrirSession(coach);
   } else {
@@ -2113,13 +2114,13 @@ const PROGS={
       "55-65":[
         {l:"S1-2",hz:"45-50",us:"250",int:"65-75%",phase:"Activation douce + maintien musculaire",note:"Priorité confort articulaire."},
         {l:"S3-4",hz:"52-55",us:"300",int:"75-85%",phase:"Raffermissement + premiers gains visibles",note:"Accent cuisses/fessiers/abdos. Progression lente."},
-        {l:"S5-6",hz:"55-58",us:"320",int:"80-90%",phase:"Maintien masse musculaire + tonicité",note:"Ne pas dépasser 60 Hz."},
+        {l:"S5-6",hz:"55-58",us:"300",int:"80-90%",phase:"Maintien masse musculaire + tonicité",note:"Ne pas dépasser 60 Hz."},
         {l:"S7-8",hz:"58-62",us:"350",int:"85-95%",phase:"Stabilisation + entretien musculaire profond",note:"Objectif raffermissement et posture."}
       ],
       "65+":[
         {l:"S1-2",hz:"38-42",us:"200",int:"60-70%",phase:"Réveil musculaire doux + activation circulation",note:"Priorité stabilité et confort articulaire absolu."},
         {l:"S3-4",hz:"43-46",us:"250",int:"65-75%",phase:"Maintien musculaire + tonicité légère",note:"Accent abdos/dos pour posture. Progression lente."},
-        {l:"S5-6",hz:"46-48",us:"280",int:"70-80%",phase:"Renforcement tronc + amélioration posture",note:"Ne pas dépasser 50 Hz."},
+        {l:"S5-6",hz:"46-48",us:"300",int:"70-80%",phase:"Renforcement tronc + amélioration posture",note:"Ne pas dépasser 50 Hz."},
         {l:"S7-8",hz:"48-50",us:"300",int:"75-85%",phase:"Entretien masse musculaire + stabilisation posturale",note:"Objectif maintien et qualité de vie."}
       ]
     },
@@ -2145,13 +2146,13 @@ const PROGS={
       "55-65":[
         {l:"S1-2",hz:"45-50",us:"250",int:"65-75%",phase:"Activation douce + adaptation nerveuse",note:"Priorité sécurité articulaire."},
         {l:"S3-4",hz:"52-55",us:"300",int:"75-85%",phase:"Renforcement progressif + maintien musculaire",note:"Accent abdos/dos/épaules."},
-        {l:"S5-6",hz:"55-60",us:"320",int:"80-90%",phase:"Renforcement tronc + tonicité accrue",note:"Ne pas dépasser 62 Hz."},
+        {l:"S5-6",hz:"55-60",us:"300",int:"80-90%",phase:"Renforcement tronc + tonicité accrue",note:"Ne pas dépasser 62 Hz."},
         {l:"S7-8",hz:"60-65",us:"350",int:"85-95%",phase:"Stabilisation + densité musculaire",note:"Maintien posture et mobilité."}
       ],
       "65+":[
         {l:"S1-2",hz:"38-42",us:"200",int:"60-70%",phase:"Réveil musculaire très doux + circulation",note:"Toujours prioriser stabilité et confort articulaire."},
         {l:"S3-4",hz:"42-45",us:"250",int:"65-75%",phase:"Maintien musculaire + amélioration posture",note:"Accent abdominaux/dos. Ne pas forcer."},
-        {l:"S5-6",hz:"45-48",us:"280",int:"70-80%",phase:"Renforcement tronc progressif",note:"Ne pas dépasser 50 Hz. Préserver tendons."},
+        {l:"S5-6",hz:"45-48",us:"300",int:"70-80%",phase:"Renforcement tronc progressif",note:"Ne pas dépasser 50 Hz. Préserver tendons."},
         {l:"S7-8",hz:"48-50",us:"300",int:"75-85%",phase:"Entretien masse + stabilisation posturale",note:"Progression lente et constante."}
       ]
     }
@@ -2165,16 +2166,16 @@ const PROGS={
         {l:"S7-8",ph1:"2-4 Hz / 150-200 µs / 15-20% — drainage (3 min) puis 13-14 Hz / 350 µs / 80-90%",ph2:"65 Hz – 380 µs – 85-95% — compression taille, anti-rotation, gainage fort",massage:"9-10 Hz – 200 µs – Drainage viscéral + relâchement psoas"}
       ],
       "35-45":[
-        {l:"S1-2",ph1:"2-4 Hz / 150-200 µs / 15-20% — drainage (3 min) puis 8 Hz / 250 µs / 60-70%",ph2:"45 Hz – 280 µs – 65-75% — crunch simple, rotations douces, gainage 10s",massage:"9-10 Hz – 200 µs – Drainage viscéral + relâchement psoas"},
-        {l:"S3-4",ph1:"2-4 Hz / 150-200 µs / 15-20% — drainage (3 min) puis 10 Hz / 280 µs / 65-75%",ph2:"50-55 Hz – 300 µs – 70-80% — crunch croisé, relevé de bassin, anti-rotation",massage:"9-10 Hz – 200 µs – Drainage viscéral + relâchement psoas"},
+        {l:"S1-2",ph1:"2-4 Hz / 150-200 µs / 15-20% — drainage (3 min) puis 8 Hz / 250 µs / 60-70%",ph2:"45 Hz – 300 µs – 65-75% — crunch simple, rotations douces, gainage 10s",massage:"9-10 Hz – 200 µs – Drainage viscéral + relâchement psoas"},
+        {l:"S3-4",ph1:"2-4 Hz / 150-200 µs / 15-20% — drainage (3 min) puis 10 Hz / 300 µs / 65-75%",ph2:"50-55 Hz – 300 µs – 70-80% — crunch croisé, relevé de bassin, anti-rotation",massage:"9-10 Hz – 200 µs – Drainage viscéral + relâchement psoas"},
         {l:"S5-6",ph1:"2-4 Hz / 150-200 µs / 15-20% — drainage (3 min) puis 12 Hz / 300 µs / 70-80%",ph2:"55-60 Hz – 330 µs – 75-85% — side crunch, rotations contrôlées, planche 20s",massage:"9-10 Hz – 200 µs – Drainage viscéral + relâchement psoas"},
-        {l:"S7-8",ph1:"2-4 Hz / 150-200 µs / 15-20% — drainage (3 min) puis 13 Hz / 320 µs / 75-85%",ph2:"62 Hz – 370 µs – 80-90% — compression taille, anti-rotation, inchworm",massage:"9-10 Hz – 200 µs – Drainage viscéral + relâchement psoas"}
+        {l:"S7-8",ph1:"2-4 Hz / 150-200 µs / 15-20% — drainage (3 min) puis 13 Hz / 300 µs / 75-85%",ph2:"62 Hz – 370 µs – 80-90% — compression taille, anti-rotation, inchworm",massage:"9-10 Hz – 200 µs – Drainage viscéral + relâchement psoas"}
       ],
       "45-55":[
         {l:"S1-2",ph1:"2-4 Hz / 150-200 µs / 15-20% — drainage (3 min) puis 7 Hz / 230 µs / 55-65%",ph2:"40 Hz – 250 µs – 60-70% — demi-crunch, respirations profondes, gainage doux",note:"Ménopause : chute des œstrogènes = stockage abdominal profond. Progression plus lente, priorité au confort.",massage:"9-10 Hz – 200 µs – Drainage viscéral + relâchement psoas"},
-        {l:"S3-4",ph1:"2-4 Hz / 150-200 µs / 15-20% — drainage (3 min) puis 9 Hz / 250 µs / 60-70%",ph2:"45-48 Hz – 280 µs – 65-75% — crunch bras croisés, relevé de bassin doux",massage:"9-10 Hz – 200 µs – Drainage viscéral + relâchement psoas"},
+        {l:"S3-4",ph1:"2-4 Hz / 150-200 µs / 15-20% — drainage (3 min) puis 9 Hz / 250 µs / 60-70%",ph2:"45-48 Hz – 300 µs – 65-75% — crunch bras croisés, relevé de bassin doux",massage:"9-10 Hz – 200 µs – Drainage viscéral + relâchement psoas"},
         {l:"S5-6",ph1:"2-4 Hz / 150-200 µs / 15-20% — drainage (3 min) puis 10 Hz / 270 µs / 65-75%",ph2:"50 Hz – 300 µs – 70-80% — side crunch léger, anti-rotation douce",massage:"9-10 Hz – 200 µs – Drainage viscéral + relâchement psoas"},
-        {l:"S7-8",ph1:"2-4 Hz / 150-200 µs / 15-20% — drainage (3 min) puis 12 Hz / 300 µs / 70-80%",ph2:"55 Hz – 320 µs – 75-85% — compression taille debout, rotations contrôlées",massage:"9-10 Hz – 200 µs – Drainage viscéral + relâchement psoas"}
+        {l:"S7-8",ph1:"2-4 Hz / 150-200 µs / 15-20% — drainage (3 min) puis 12 Hz / 300 µs / 70-80%",ph2:"55 Hz – 300 µs – 75-85% — compression taille debout, rotations contrôlées",massage:"9-10 Hz – 200 µs – Drainage viscéral + relâchement psoas"}
       ],
       "55-65":[
         {l:"S1-2",ph1:"2-4 Hz / 150-200 µs / 15-20% — drainage (3 min) puis 6 Hz / 200 µs / 50-60%",ph2:"35 Hz – 220 µs – 55-65% — abdos assis, mini-rotations, respiration profonde",note:"Post-ménopause : priorité tonicité abdominale et posture.",massage:"8-9 Hz – 150-200 µs – Drainage viscéral doux + baisse cortisol"},
