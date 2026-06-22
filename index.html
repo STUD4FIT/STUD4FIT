@@ -523,7 +523,7 @@ function ouvrirSession(coach){
   // Save session for 1 hour
   const session = {coachId: coach.id, expiry: Date.now() + 60*60*1000};
   localStorage.setItem('s4f_session', JSON.stringify(session));
-  loadFromSheets();
+  // loadFromSheets() temporairement désactivé pour protéger les données locales
 }
 
 function verifierCode(){
