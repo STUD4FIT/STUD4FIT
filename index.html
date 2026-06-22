@@ -434,9 +434,22 @@ function saveCoachs(){
 }
 async function syncToSheets(){
   try {
-    await fetch(SCRIPT_URL, {method:'POST', body:JSON.stringify({clients, coachs}), mode:'no-cors'});
-    showSyncStatus('✓ Synchronisé');
-  } catch(e){ showSyncStatus('⚠️ Hors ligne'); }
+    const response = await fetch(SCRIPT_URL, {
+      method:'POST',
+      body: JSON.stringify({clients, coachs}),
+      headers: {'Content-Type': 'text/plain;charset=utf-8'}
+    });
+    const text = await response.text();
+    if(text.startsWith('OK')){
+      showSyncStatus('✓ Synchronisé');
+    } else {
+      showSyncStatus('⚠️ Erreur: ' + text.substring(0,50));
+      console.error('Sync error:', text);
+    }
+  } catch(e){
+    showSyncStatus('⚠️ Hors ligne: ' + e.message);
+    console.error('Sync exception:', e);
+  }
 }
 async function loadFromSheets(){
   try {
