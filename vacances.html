@@ -255,35 +255,41 @@
   @media print{ .fab{display:none !important;} .suppr{display:none !important;} }
   .titre-impression{display:none;}
   @media print{
+    @page{margin:10mm;}
     body{background:#fff;padding:0;}
     header,.tabs,.outils,.btn-imprimer{display:none !important;}
-    main{padding:0;}
+    main{padding:0;column-count:2;column-gap:7mm;}
     .personne{display:block !important;animation:none;}
     .titre-impression{
       display:block;
-      font-size:1.3rem;
+      font-size:12pt;
       font-weight:800;
-      margin:14px 0 8px;
-      padding-bottom:4px;
-      border-bottom:2px solid #22423F;
-      page-break-after:avoid;
+      margin:4pt 0 4pt;
+      padding-bottom:2pt;
+      border-bottom:1.5pt solid #22423F;
+      break-after:avoid;
     }
-    .personne + .personne .titre-impression{page-break-before:always;}
     .categorie{
       box-shadow:none;
-      border:1px solid #ccc;
-      border-radius:8px;
-      margin-bottom:10px;
-      page-break-inside:avoid;
+      border:.7pt solid #bbb;
+      border-radius:5pt;
+      margin-bottom:5pt;
+      break-inside:avoid;
     }
     .categorie.plie .items{display:block;}
-    .cat-titre{padding:8px 10px;}
-    .item{padding:5px 6px;}
-    .case{width:18px;height:18px;border-radius:5px;border-width:1.5px;}
+    .items{padding:0 3pt 3pt;}
+    .cat-titre{padding:4pt 6pt;}
+    .cat-titre h2{font-size:8.5pt;gap:4pt;}
+    .cat-titre .emoji{font-size:9pt;}
+    .cat-titre .etat{font-size:7pt;padding:1pt 5pt;}
+    .item{padding:1.5pt 3pt;gap:5pt;border-top:.5pt solid #eee;}
+    .case{width:11pt;height:11pt;border-radius:3pt;border-width:1pt;}
+    .case svg{width:7pt;height:7pt;}
     .item.coche .case{background:#3E8E6D !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-    .libelle{font-size:.85rem;}
+    .libelle{font-size:7.5pt;line-height:1.2;}
     .qte button{display:none;}
-    .qte .val{font-size:.85rem;}
+    .qte{gap:2pt;}
+    .qte .val{font-size:7.5pt;min-width:10pt;}
     .qte .val.vide{visibility:hidden;}
   }
 </style>
