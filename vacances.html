@@ -260,7 +260,16 @@
     html,body{width:190mm;}
     body{background:#fff;padding:0;font-size:9pt;}
     header,.tabs,.outils,.btn-imprimer{display:none !important;}
-    main{padding:0;column-count:2;column-gap:7mm;}
+    main{
+      padding:0;
+      column-count:2;
+      -webkit-column-count:2;
+      -moz-column-count:2;
+      column-gap:6mm;
+      -webkit-column-gap:6mm;
+      column-fill:auto;
+      -webkit-column-fill:auto;
+    }
     .personne{display:block !important;animation:none;}
     .titre-impression{
       display:block;
@@ -275,8 +284,10 @@
       box-shadow:none;
       border:.7pt solid #bbb;
       border-radius:5pt;
-      margin-bottom:5pt;
+      margin-bottom:4pt;
       break-inside:avoid;
+      -webkit-column-break-inside:avoid;
+      page-break-inside:avoid;
     }
     .categorie.plie .items{display:block;}
     .items{padding:0 3pt 3pt;}
