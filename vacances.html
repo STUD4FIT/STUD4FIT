@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Vacances">
+<meta name="theme-color" content="#2C6E8F">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%232C6E8F'/><text x='50' y='68' font-size='55' text-anchor='middle'>🧳</text></svg>">
+<title>Checklist Vacances d'été</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800&family=Caveat:wght@600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --sable:#FBF8F1;
+    --encre:#22423F;
+    --ocean:#2C6E8F;
+    --ocean-clair:#E3EEF3;
+    --soleil:#F2B33D;
+    --vert:#3E8E6D;
+    --gris:#8AA0A6;
+    --blanc:#FFFFFF;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{
+    font-family:'Nunito',system-ui,sans-serif;
+    background:var(--sable);
+    color:var(--encre);
+    min-height:100vh;
+    padding-bottom:40px;
+  }
+  header{
+    background:linear-gradient(160deg,var(--ocean) 0%, #3D8AAE 100%);
+    color:var(--blanc);
+    padding:22px 18px 60px;
+    position:relative;
+    overflow:hidden;
+  }
+  header .vague{
+    position:absolute;left:0;right:0;bottom:-1px;height:36px;
+  }
+  header h1{
+    font-family:'Caveat',cursive;
+    font-size:2.1rem;
+    font-weight:600;
+    letter-spacing:.5px;
+  }
+  header p{opacity:.85;font-size:.85rem;margin-top:2px;}
+  .tabs{
+    display:flex;
+    gap:8px;
+    padding:0 14px;
+    margin-top:-28px;
+    position:relative;
+    z-index:2;
+  }
+  .tab{
+    flex:1;
+    background:var(--blanc);
+    border:2px solid transparent;
+    border-radius:14px;
+    padding:10px 6px 8px;
+    text-align:center;
+    cursor:pointer;
+    box-shadow:0 3px 10px rgba(34,66,63,.08);
+    transition:transform .12s ease, border-color .12s ease;
+  }
+  .tab:active{transform:scale(.97);}
+  .tab.active{border-color:var(--soleil);}
+  .tab .nom{font-weight:800;font-size:.95rem;}
+  .tab .compte{font-size:.72rem;color:var(--gris);font-weight:700;margin-top:1px;}
+  .tab .barre{
+    height:5px;border-radius:3px;background:var(--ocean-clair);
+    margin-top:6px;overflow:hidden;
+  }
+  .tab .barre i{
+    display:block;height:100%;width:0%;
+    background:var(--vert);border-radius:3px;
+    transition:width .3s ease;
+  }
+  main{padding:16px 14px 0;}
+  .personne{display:none;}
+  .personne.visible{display:block;animation:pop .18s ease;}
+  @keyframes pop{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+  .categorie{
+    background:var(--blanc);
+    border-radius:16px;
+    margin-bottom:14px;
+    box-shadow:0 2px 8px rgba(34,66,63,.06);
+    overflow:hidden;
+  }
+  .cat-titre{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:12px 14px;
+    cursor:pointer;
+    user-select:none;
+  }
+  .cat-titre h2{
+    font-size:1rem;font-weight:800;
+    display:flex;align-items:center;gap:8px;
+  }
+  .cat-titre .emoji{font-size:1.15rem;}
+  .cat-titre .etat{
+    font-size:.75rem;font-weight:800;color:var(--gris);
+    background:var(--ocean-clair);
+    padding:3px 9px;border-radius:10px;
+  }
+  .cat-titre .etat.fini{background:#DCEFE6;color:var(--vert);}
+  .items{list-style:none;padding:0 8px 8px;}
+  .categorie.plie .items{display:none;}
+  .item{
+    display:flex;align-items:center;gap:10px;
+    padding:9px 8px;
+    border-top:1px solid #F0EDE4;
+    border-radius:10px;
+  }
+  .case{
+    width:26px;height:26px;flex-shrink:0;
+    border:2px solid var(--ocean);
+    border-radius:8px;
+    background:var(--blanc);
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;
+    transition:background .12s ease,border-color .12s ease;
+  }
+  .case svg{width:15px;height:15px;opacity:0;transition:opacity .12s ease;}
+  .item.coche .case{background:var(--vert);border-color:var(--vert);}
+  .item.coche .case svg{opacity:1;}
+  .libelle{
+    flex:1;font-size:.92rem;font-weight:700;line-height:1.25;
+    cursor:pointer;
+  }
+  .item.coche .libelle{color:var(--gris);text-decoration:line-through;text-decoration-thickness:1.5px;}
+  .qte{
+    display:flex;align-items:center;gap:6px;flex-shrink:0;
+  }
+  .qte button{
+    width:26px;height:26px;
+    border:none;border-radius:8px;
+    background:var(--ocean-clair);
+    color:var(--ocean);
+    font-size:1.05rem;font-weight:800;
+    cursor:pointer;
+    line-height:1;
+  }
+  .qte button:active{background:var(--ocean);color:#fff;}
+  .qte .val{
+    min-width:20px;text-align:center;
+    font-size:.9rem;font-weight:800;
+  }
+  .qte .val.vide{color:#C8D3D6;}
+  .outils{
+    display:flex;justify-content:center;margin:6px 0 20px;
+  }
+  .outils button{
+    border:none;background:none;
+    color:var(--gris);font-weight:700;font-size:.8rem;
+    text-decoration:underline;cursor:pointer;
+    font-family:inherit;
+  }
+  .btn-imprimer{
+    display:block;
+    margin:18px auto 0;
+    background:var(--ocean);
+    color:#fff;
+    border:none;
+    border-radius:12px;
+    padding:12px 22px;
+    font-family:inherit;
+    font-weight:800;
+    font-size:.95rem;
+    cursor:pointer;
+    box-shadow:0 3px 10px rgba(44,110,143,.3);
+  }
+  .btn-imprimer:active{transform:scale(.97);}
+  .fab{
+    position:fixed;
+    right:16px;bottom:16px;
+    width:56px;height:56px;
+    border-radius:50%;
+    border:none;
+    background:var(--soleil);
+    color:var(--encre);
+    font-size:2rem;
+    font-weight:800;
+    line-height:1;
+    cursor:pointer;
+    box-shadow:0 4px 14px rgba(34,66,63,.3);
+    z-index:20;
+  }
+  .fab:active{transform:scale(.94);}
+  .modal-fond{
+    display:none;
+    position:fixed;inset:0;
+    background:rgba(34,66,63,.45);
+    z-index:30;
+    align-items:flex-end;
+    justify-content:center;
+  }
+  .modal-fond.ouvert{display:flex;}
+  .modal{
+    background:var(--blanc);
+    border-radius:20px 20px 0 0;
+    padding:20px 18px 26px;
+    width:100%;
+    max-width:520px;
+    animation:monte .2s ease;
+  }
+  @keyframes monte{from{transform:translateY(30px);opacity:0;}to{transform:none;opacity:1;}}
+  .modal h3{font-size:1.1rem;font-weight:800;margin-bottom:14px;}
+  .modal label{
+    display:block;
+    font-size:.78rem;font-weight:800;color:var(--gris);
+    text-transform:uppercase;letter-spacing:.5px;
+    margin:12px 0 4px;
+  }
+  .modal input[type=text], .modal select{
+    width:100%;
+    padding:11px 12px;
+    border:2px solid var(--ocean-clair);
+    border-radius:12px;
+    font-family:inherit;
+    font-size:1rem;
+    font-weight:700;
+    color:var(--encre);
+    background:var(--blanc);
+    -webkit-appearance:none;
+  }
+  .modal input[type=text]:focus, .modal select:focus{
+    outline:none;border-color:var(--ocean);
+  }
+  .modal .actions{
+    display:flex;gap:10px;margin-top:18px;
+  }
+  .modal .actions button{
+    flex:1;
+    padding:12px;
+    border:none;border-radius:12px;
+    font-family:inherit;font-weight:800;font-size:.95rem;
+    cursor:pointer;
+  }
+  .btn-annuler{background:var(--ocean-clair);color:var(--ocean);}
+  .btn-ajouter{background:var(--vert);color:#fff;}
+  .btn-ajouter:disabled{opacity:.4;}
+  .suppr{
+    border:none;background:none;
+    color:#C8D3D6;
+    font-size:1.05rem;
+    cursor:pointer;
+    padding:2px 4px;
+    flex-shrink:0;
+  }
+  .suppr:active{color:#D9534F;}
+  @media print{ .fab{display:none !important;} .suppr{display:none !important;} }
+  .titre-impression{display:none;}
+  @media print{
+    body{background:#fff;padding:0;}
+    header,.tabs,.outils,.btn-imprimer{display:none !important;}
+    main{padding:0;}
+    .personne{display:block !important;animation:none;}
+    .titre-impression{
+      display:block;
+      font-size:1.3rem;
+      font-weight:800;
+      margin:14px 0 8px;
+      padding-bottom:4px;
+      border-bottom:2px solid #22423F;
+      page-break-after:avoid;
+    }
+    .personne + .personne .titre-impression{page-break-before:always;}
+    .categorie{
+      box-shadow:none;
+      border:1px solid #ccc;
+      border-radius:8px;
+      margin-bottom:10px;
+      page-break-inside:avoid;
+    }
+    .categorie.plie .items{display:block;}
+    .cat-titre{padding:8px 10px;}
+    .item{padding:5px 6px;}
+    .case{width:18px;height:18px;border-radius:5px;border-width:1.5px;}
+    .item.coche .case{background:#3E8E6D !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .libelle{font-size:.85rem;}
+    .qte button{display:none;}
+    .qte .val{font-size:.85rem;}
+    .qte .val.vide{visibility:hidden;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>☀️ Checklist vacances</h1>
+  <p>Coche au fur et à mesure — tout est sauvegardé</p>
+  <svg class="vague" viewBox="0 0 500 40" preserveAspectRatio="none"><path d="M0,20 C120,45 250,-5 500,25 L500,40 L0,40 Z" fill="#FBF8F1"/></svg>
+</header>
+
+<div class="tabs" id="tabs"></div>
+<main id="main"></main>
+<button class="btn-imprimer" id="imprimer">🖨️ Version imprimable</button>
+<div class="outils"><button id="reset">Tout décocher</button></div>
+
+<button class="fab" id="fab" aria-label="Ajouter un article">+</button>
+
+<div class="modal-fond" id="modal-fond">
+  <div class="modal">
+    <h3>➕ Ajouter un article</h3>
+    <label for="aj-libelle">Quoi ?</label>
+    <input type="text" id="aj-libelle" placeholder="Ex : crème après-soleil" maxlength="60">
+    <label for="aj-personne">Pour qui ?</label>
+    <select id="aj-personne"></select>
+    <label for="aj-categorie">Dans quelle catégorie ?</label>
+    <select id="aj-categorie"></select>
+    <div class="actions">
+      <button class="btn-annuler" id="aj-annuler">Annuler</button>
+      <button class="btn-ajouter" id="aj-valider">Ajouter</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const DATA = {
+  carine: {
+    nom: "Carine",
+    cats: [
+      { emoji:"🧴", titre:"Trousse de toilette", items:[
+        "Brosse à dents & dentifrice","Cotons & cotons-tiges","Crème / sérum / eau micellaire",
+        "Nettoyant visage","Gel douche","Shampoing & après-shampoing","Crème corps",
+        "Brosse à cheveux","Pinces à cheveux & élastiques","Soins cheveux",
+        "Lingettes","Tampons / protections","Rasoir / épilateur / pince à épiler","Miroir","Maquillage","Doliprane"
+      ]},
+      { emoji:"🛁", titre:"Serviettes", items:[
+        "Serviette de bain (corps & cheveux)","Serviette de sol & serviettes mains"
+      ]},
+      { emoji:"🏖️", titre:"Plage", items:[
+        "Maillots de bain","Serviette de plage","Coussin","Éventail","Poncho éponge","Tongs"
+      ]},
+      { emoji:"🎒", titre:"Accessoires", items:[
+        "Parasol / tente","Fauteuils","Glacière","Gonfleur sans fil",
+        "Lunettes de soleil & lunettes de vue","Chargeurs téléphone","Poches aspirantes",
+        "Étagère de porte","Fil à linge","Sac à linge sale","Parapluie","Petit sac à dos","Chariot de plage"
+      ]},
+      { emoji:"👕", titre:"Vêtements", items:[
+        "Shorts","Tee-shirts","Pantalons","Pulls / sweats","Casquette","Pyjamas",
+        "Sandales","Baskets","Bottes de pluie"
+      ]},
+      { emoji:"🛏️", titre:"Couchage", items:[
+        "Drap housse","Taie d'oreiller","Couette"
+      ]}
+    ]
+  },
+  owen: {
+    nom: "Owen",
+    cats: [
+      { emoji:"🧴", titre:"Trousse de toilette", items:[
+        "Brosse à dents & dentifrice","Crème solaire","Doliprane","Talc",
+        "Baume à lèvres","Produits nez","Sérum phy","Serre-tête",
+        "Serviette corps & cheveux"
+      ]},
+      { emoji:"🏖️", titre:"Plage", items:[
+        "Maillots de bain","Serviette de plage","Jeux de plage","Planche de bodyboard",
+        "Poncho éponge","Lunettes de plongée","Tongs"
+      ]},
+      { emoji:"👕", titre:"Vêtements", items:[
+        "Shorts","Joggings","Tee-shirts","Sweats","Caleçons","Chaussettes",
+        "Baskets","Casquette","Pyjamas","K-way","Bottes de pluie"
+      ]},
+      { emoji:"🛏️", titre:"Couchage", items:[
+        "Drap housse","Couverture / sac de couchage"
+      ]},
+      { emoji:"🧸", titre:"Jeux & soirée", items:[
+        "Doudous","Jouets","Console","Boîte à histoires","Torche"
+      ]}
+    ]
+  },
+  jordan: {
+    nom: "Jordan",
+    cats: [
+      { emoji:"🧴", titre:"Toilette & soins", items:[
+        "Gel douche","Crème lavante / eau lavante","Liniment","Couches","Cotons",
+        "Coupe-ongles","Sérum phy & seringue","Brosse","Serviettes & gants","Talc",
+        "Vitamines","Doliprane","Baignoire / table à langer gonflable (+ housse)"
+      ]},
+      { emoji:"🏖️", titre:"Plage", items:[
+        "Serviette","Chapeau","Lunettes","Talc (pour le sable)","Ventilateur"
+      ]},
+      { emoji:"🍼", titre:"Repas", items:[
+        "Biberons","Chauffe-biberon","Sac isotherme biberons","Lait en poudre",
+        "Repas & compotes","Sèche-biberons"
+      ]},
+      { emoji:"🎒", titre:"Matériel", items:[
+        "Jouets","Protège-oreilles","Lit parapluie + draps","Poussette",
+        "Moustiquaire & protège-pluie poussette"
+      ]},
+      { emoji:"👶", titre:"Vêtements", items:[
+        "Bodys manches courtes","Bodys manches longues","Gigoteuse","Pulls",
+        "Pantalons","Tee-shirts","Shorts","Chaussures","Drap"
+      ]}
+    ]
+  }
+};
+
+const CLE = "checklist-vacances-ete";
+let etat = {}; // { "carine|0|2": {c:true, q:3} }
+let extras = []; // [{id, p, ci, lib}]
+let ongletActif = "carine";
+let memoireSeule = false;
+
+function idItem(p,ci,ii){ return p+"|"+ci+"|"+ii; }
+
+async function charger(){
+  try{
+    const r = localStorage.getItem(CLE);
+    if(r){
+      const d = JSON.parse(r);
+      if(d && d.items){ etat = d.items; extras = d.extras || []; }
+      else if(d){ etat = d; } // ancien format
+    }
+  }catch(e){ /* première utilisation ou stockage indispo */ }
+  construire();
+}
+
+let minuteur=null;
+function sauver(){
+  clearTimeout(minuteur);
+  minuteur=setTimeout(async ()=>{
+    try{ localStorage.setItem(CLE, JSON.stringify({items:etat, extras:extras})); }
+    catch(e){ memoireSeule=true; }
+  },300);
+}
+
+function construire(){
+  const tabs=document.getElementById("tabs");
+  const main=document.getElementById("main");
+  tabs.innerHTML=""; main.innerHTML="";
+
+  Object.keys(DATA).forEach(p=>{
+    const d=DATA[p];
+    const t=document.createElement("div");
+    t.className="tab"+(p===ongletActif?" active":"");
+    t.id="tab-"+p;
+    t.innerHTML='<div class="nom">'+d.nom+'</div><div class="compte" id="cpt-'+p+'"></div><div class="barre"><i id="bar-'+p+'"></i></div>';
+    t.onclick=()=>{ ongletActif=p; construire(); };
+    tabs.appendChild(t);
+
+    const sec=document.createElement("section");
+    sec.className="personne"+(p===ongletActif?" visible":"");
+    const th=document.createElement("h2");
+    th.className="titre-impression";
+    th.textContent="🧳 "+d.nom;
+    sec.appendChild(th);
+    d.cats.forEach((cat,ci)=>{
+      const c=document.createElement("div");
+      c.className="categorie";
+      const ul=document.createElement("ul");
+      ul.className="items";
+      cat.items.forEach((lib,ii)=>{
+        creerLigne(ul, idItem(p,ci,ii), lib, false);
+      });
+      extras.filter(x=>x.p===p && x.ci===ci).forEach(x=>{
+        creerLigne(ul, x.id, x.lib, true);
+      });
+      const titre=document.createElement("div");
+      titre.className="cat-titre";
+      titre.innerHTML='<h2><span class="emoji">'+cat.emoji+'</span>'+cat.titre+'</h2><span class="etat" id="etat-'+p+'-'+ci+'"></span>';
+      titre.onclick=()=>c.classList.toggle("plie");
+      c.appendChild(titre);
+      c.appendChild(ul);
+      sec.appendChild(c);
+    });
+    main.appendChild(sec);
+  });
+  majCompteurs();
+}
+
+function creerLigne(ul, id, lib, estExtra){
+  const e=etat[id]||{c:false,q:0};
+  const li=document.createElement("li");
+  li.className="item"+(e.c?" coche":"");
+  li.innerHTML=
+    '<div class="case"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>'+
+    '<div class="libelle"></div>'+
+    '<div class="qte"><button data-a="-">−</button><span class="val'+(e.q?'':' vide')+'">'+(e.q||'–')+'</span><button data-a="+">+</button></div>'+
+    (estExtra?'<button class="suppr" title="Supprimer">✕</button>':'');
+  li.querySelector(".libelle").textContent=lib;
+  li.querySelector(".case").onclick=()=>basculer(id,li);
+  li.querySelector(".libelle").onclick=()=>basculer(id,li);
+  li.querySelectorAll(".qte button").forEach(b=>b.onclick=(ev)=>{
+    ev.stopPropagation();
+    const cur=etat[id]||{c:false,q:0};
+    cur.q=Math.max(0,(cur.q||0)+(b.dataset.a==="+"?1:-1));
+    etat[id]=cur;
+    const v=li.querySelector(".val");
+    v.textContent=cur.q||"–";
+    v.classList.toggle("vide",!cur.q);
+    sauver();
+  });
+  if(estExtra){
+    li.querySelector(".suppr").onclick=(ev)=>{
+      ev.stopPropagation();
+      if(confirm('Supprimer "'+lib+'" ?')){
+        extras=extras.filter(x=>x.id!==id);
+        delete etat[id];
+        construire();
+        sauver();
+      }
+    };
+  }
+  ul.appendChild(li);
+}
+
+function basculer(id,li){
+  const e=etat[id]||{c:false,q:0};
+  e.c=!e.c;
+  etat[id]=e;
+  li.classList.toggle("coche",e.c);
+  majCompteurs();
+  sauver();
+}
+
+function majCompteurs(){
+  Object.keys(DATA).forEach(p=>{
+    let tot=0,faits=0;
+    DATA[p].cats.forEach((cat,ci)=>{
+      const xs=extras.filter(x=>x.p===p && x.ci===ci);
+      let ct=cat.items.length+xs.length, cf=0;
+      cat.items.forEach((_,ii)=>{
+        tot++;
+        if((etat[idItem(p,ci,ii)]||{}).c){faits++;cf++;}
+      });
+      xs.forEach(x=>{
+        tot++;
+        if((etat[x.id]||{}).c){faits++;cf++;}
+      });
+      const badge=document.getElementById("etat-"+p+"-"+ci);
+      if(badge){
+        badge.textContent=cf+"/"+ct;
+        badge.classList.toggle("fini",cf===ct);
+      }
+    });
+    const cpt=document.getElementById("cpt-"+p);
+    const bar=document.getElementById("bar-"+p);
+    if(cpt) cpt.textContent=faits+" / "+tot;
+    if(bar) bar.style.width=(tot?Math.round(faits/tot*100):0)+"%";
+  });
+}
+
+document.getElementById("imprimer").onclick=()=>{ window.print(); };
+
+// ---- Formulaire d'ajout ----
+const modalFond=document.getElementById("modal-fond");
+const selPersonne=document.getElementById("aj-personne");
+const selCategorie=document.getElementById("aj-categorie");
+const champLibelle=document.getElementById("aj-libelle");
+
+function remplirPersonnes(){
+  selPersonne.innerHTML="";
+  Object.keys(DATA).forEach(p=>{
+    const o=document.createElement("option");
+    o.value=p; o.textContent=DATA[p].nom;
+    selPersonne.appendChild(o);
+  });
+}
+function remplirCategories(){
+  const p=selPersonne.value;
+  selCategorie.innerHTML="";
+  DATA[p].cats.forEach((cat,ci)=>{
+    const o=document.createElement("option");
+    o.value=ci; o.textContent=cat.emoji+" "+cat.titre;
+    selCategorie.appendChild(o);
+  });
+}
+selPersonne.onchange=remplirCategories;
+
+document.getElementById("fab").onclick=()=>{
+  remplirPersonnes();
+  selPersonne.value=ongletActif;
+  remplirCategories();
+  champLibelle.value="";
+  modalFond.classList.add("ouvert");
+  setTimeout(()=>champLibelle.focus(),150);
+};
+document.getElementById("aj-annuler").onclick=()=>modalFond.classList.remove("ouvert");
+modalFond.onclick=(ev)=>{ if(ev.target===modalFond) modalFond.classList.remove("ouvert"); };
+
+document.getElementById("aj-valider").onclick=()=>{
+  const lib=champLibelle.value.trim();
+  if(!lib){ champLibelle.focus(); return; }
+  const p=selPersonne.value;
+  const ci=parseInt(selCategorie.value,10);
+  extras.push({ id:"x"+Date.now(), p:p, ci:ci, lib:lib });
+  ongletActif=p;
+  modalFond.classList.remove("ouvert");
+  construire();
+  sauver();
+};
+champLibelle.addEventListener("keydown",(ev)=>{
+  if(ev.key==="Enter") document.getElementById("aj-valider").click();
+});
+
+document.getElementById("reset").onclick=()=>{
+  if(confirm("Tout décocher et remettre les quantités à zéro ?")){
+    etat={};
+    construire();
+    sauver();
+  }
+};
+
+charger();
+</script>
+</body>
+</html>
