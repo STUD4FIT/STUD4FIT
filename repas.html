@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Repas Jordan">
+<meta name="theme-color" content="#5B8C51">
+<link rel="apple-touch-icon" sizes="180x180" href="icone-repas.png">
+<link rel="icon" type="image/png" href="icone-repas.png">
+<title>Les repas de Jordan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800&family=Caveat:wght@600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --fond:#FAF9F2;
+    --encre:#31402C;
+    --vert:#5B8C51;
+    --vert-clair:#E7F0E2;
+    --orange:#E8964B;
+    --orange-clair:#FBEEDD;
+    --gris:#94A08D;
+    --blanc:#FFFFFF;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{
+    font-family:'Nunito',system-ui,sans-serif;
+    background:var(--fond);
+    color:var(--encre);
+    min-height:100vh;
+    padding-bottom:90px;
+  }
+  header{
+    background:linear-gradient(160deg,#6B9E60 0%, var(--vert) 100%);
+    color:var(--blanc);
+    padding:22px 18px 46px;
+    position:relative;
+  }
+  header h1{
+    font-family:'Caveat',cursive;
+    font-size:2.1rem;
+    font-weight:600;
+  }
+  header p{opacity:.9;font-size:.85rem;margin-top:2px;}
+  header .vague{position:absolute;left:0;right:0;bottom:-1px;height:30px;}
+  .resume{
+    display:flex;gap:10px;
+    padding:0 14px;
+    margin-top:-22px;
+    position:relative;z-index:2;
+  }
+  .resume .pastille{
+    flex:1;
+    background:var(--blanc);
+    border-radius:14px;
+    padding:10px 8px;
+    text-align:center;
+    box-shadow:0 3px 10px rgba(49,64,44,.08);
+  }
+  .pastille .n{font-size:1.4rem;font-weight:800;line-height:1;}
+  .pastille .l{font-size:.7rem;font-weight:800;color:var(--gris);margin-top:3px;text-transform:uppercase;letter-spacing:.4px;}
+  .pastille.stock .n{color:var(--vert);}
+  .pastille.refaire .n{color:var(--orange);}
+  .filtres{
+    display:flex;gap:6px;
+    padding:14px 14px 4px;
+  }
+  .filtres button{
+    flex:1;
+    border:none;
+    background:var(--blanc);
+    border-radius:12px;
+    padding:9px 4px;
+    font-family:inherit;
+    font-weight:800;
+    font-size:.82rem;
+    color:var(--gris);
+    cursor:pointer;
+    box-shadow:0 1px 4px rgba(49,64,44,.06);
+  }
+  .filtres button.actif{background:var(--encre);color:var(--blanc);}
+  main{padding:10px 14px 0;}
+  .categorie{
+    background:var(--blanc);
+    border-radius:16px;
+    margin-bottom:14px;
+    box-shadow:0 2px 8px rgba(49,64,44,.06);
+    overflow:hidden;
+  }
+  .cat-titre{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:12px 14px 8px;
+  }
+  .cat-titre h2{font-size:1rem;font-weight:800;display:flex;align-items:center;gap:8px;}
+  .cat-titre .emoji{font-size:1.15rem;}
+  .cat-titre .etat{
+    font-size:.72rem;font-weight:800;
+    color:var(--orange);
+    background:var(--orange-clair);
+    padding:3px 9px;border-radius:10px;
+  }
+  .cat-titre .etat.ok{color:var(--vert);background:var(--vert-clair);}
+  .items{list-style:none;padding:0 8px 8px;}
+  .item{
+    display:flex;align-items:center;gap:8px;
+    padding:9px 6px;
+    border-top:1px solid #F0EEE3;
+  }
+  .item .nom{
+    flex:1;font-size:.92rem;font-weight:700;line-height:1.25;
+    min-width:0;
+  }
+  .item.est-refaire .nom{color:var(--orange);}
+  .chips{display:flex;gap:5px;flex-shrink:0;}
+  .chip{
+    border:1.5px solid #DDE3D8;
+    background:var(--blanc);
+    border-radius:10px;
+    padding:6px 9px;
+    font-family:inherit;
+    font-size:.72rem;
+    font-weight:800;
+    color:var(--gris);
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .chip.stock.actif{background:var(--vert);border-color:var(--vert);color:#fff;}
+  .chip.refaire.actif{background:var(--orange);border-color:var(--orange);color:#fff;}
+  .qte{
+    display:flex;align-items:center;gap:4px;flex-shrink:0;
+  }
+  .qte button{
+    width:24px;height:24px;
+    border:none;border-radius:7px;
+    background:var(--vert-clair);
+    color:var(--vert);
+    font-size:1rem;font-weight:800;
+    cursor:pointer;line-height:1;
+  }
+  .qte .val{min-width:16px;text-align:center;font-size:.85rem;font-weight:800;}
+  .qte .val.vide{color:#CBD4C6;}
+  .suppr{
+    border:none;background:none;
+    color:#D5DCCF;
+    font-size:1rem;
+    cursor:pointer;
+    padding:2px 3px;
+    flex-shrink:0;
+  }
+  .suppr:active{color:#D9534F;}
+  .vide-msg{
+    text-align:center;color:var(--gris);
+    font-weight:700;font-size:.85rem;
+    padding:24px 10px;
+  }
+  .fab{
+    position:fixed;
+    right:16px;bottom:16px;
+    width:56px;height:56px;
+    border-radius:50%;
+    border:none;
+    background:var(--orange);
+    color:#fff;
+    font-size:2rem;font-weight:800;line-height:1;
+    cursor:pointer;
+    box-shadow:0 4px 14px rgba(49,64,44,.3);
+    z-index:20;
+  }
+  .fab:active{transform:scale(.94);}
+  .modal-fond{
+    display:none;
+    position:fixed;inset:0;
+    background:rgba(49,64,44,.45);
+    z-index:30;
+    align-items:flex-end;justify-content:center;
+  }
+  .modal-fond.ouvert{display:flex;}
+  .modal{
+    background:var(--blanc);
+    border-radius:20px 20px 0 0;
+    padding:20px 18px 26px;
+    width:100%;max-width:520px;
+    animation:monte .2s ease;
+  }
+  @keyframes monte{from{transform:translateY(30px);opacity:0;}to{transform:none;opacity:1;}}
+  .modal h3{font-size:1.1rem;font-weight:800;margin-bottom:6px;}
+  .modal label{
+    display:block;
+    font-size:.78rem;font-weight:800;color:var(--gris);
+    text-transform:uppercase;letter-spacing:.5px;
+    margin:12px 0 4px;
+  }
+  .modal input[type=text], .modal select{
+    width:100%;
+    padding:11px 12px;
+    border:2px solid var(--vert-clair);
+    border-radius:12px;
+    font-family:inherit;font-size:1rem;font-weight:700;
+    color:var(--encre);background:var(--blanc);
+    -webkit-appearance:none;
+  }
+  .modal input[type=text]:focus, .modal select:focus{outline:none;border-color:var(--vert);}
+  .modal .actions{display:flex;gap:10px;margin-top:18px;}
+  .modal .actions button{
+    flex:1;padding:12px;
+    border:none;border-radius:12px;
+    font-family:inherit;font-weight:800;font-size:.95rem;
+    cursor:pointer;
+  }
+  .btn-annuler{background:var(--vert-clair);color:var(--vert);}
+  .btn-ajouter{background:var(--vert);color:#fff;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🥕 Les repas de Jordan</h1>
+  <p>Purées en stock &amp; à refaire</p>
+  <svg class="vague" viewBox="0 0 500 40" preserveAspectRatio="none"><path d="M0,20 C120,45 250,-5 500,25 L500,40 L0,40 Z" fill="#FAF9F2"/></svg>
+</header>
+
+<div class="resume">
+  <div class="pastille stock"><div class="n" id="n-stock">0</div><div class="l">En stock</div></div>
+  <div class="pastille refaire"><div class="n" id="n-refaire">0</div><div class="l">À refaire</div></div>
+</div>
+
+<div class="filtres">
+  <button data-f="tout" class="actif">Tout</button>
+  <button data-f="stock">✅ En stock</button>
+  <button data-f="refaire">🔄 À refaire</button>
+</div>
+
+<main id="main"></main>
+
+<button class="fab" id="fab" aria-label="Ajouter un aliment">+</button>
+
+<div class="modal-fond" id="modal-fond">
+  <div class="modal">
+    <h3>➕ Ajouter un aliment</h3>
+    <label for="aj-nom">Quoi ?</label>
+    <input type="text" id="aj-nom" placeholder="Ex : purée de panais" maxlength="50">
+    <label for="aj-cat">Dans quelle catégorie ?</label>
+    <select id="aj-cat"></select>
+    <div class="actions">
+      <button class="btn-annuler" id="aj-annuler">Annuler</button>
+      <button class="btn-ajouter" id="aj-valider">Ajouter</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const CLE = "repas-jordan";
+
+const CATS = [
+  { id:"legumes",  emoji:"🥕", titre:"Légumes" },
+  { id:"viandes",  emoji:"🍗", titre:"Viandes & poissons" },
+  { id:"fruits",   emoji:"🍎", titre:"Fruits (compotes)" },
+  { id:"autres",   emoji:"🥣", titre:"Autres" }
+];
+
+// Aliments de départ (modifiables / supprimables ensuite)
+const DEPART = [
+  ["legumes","Purée de carotte"],
+  ["legumes","Purée de patate douce"],
+  ["legumes","Purée de courgette"],
+  ["legumes","Purée de haricots verts"],
+  ["legumes","Purée de potiron"],
+  ["legumes","Purée de brocoli"],
+  ["legumes","Purée de petits pois"],
+  ["legumes","Purée de panais"],
+  ["legumes","Purée de pomme de terre"],
+  ["viandes","Poulet mixé"],
+  ["viandes","Dinde mixée"],
+  ["viandes","Bœuf mixé"],
+  ["viandes","Poisson blanc mixé"],
+  ["fruits","Compote de pomme"],
+  ["fruits","Compote de poire"],
+  ["fruits","Compote de banane"],
+  ["fruits","Compote pêche / abricot"]
+];
+
+let items = []; // [{id, cat, nom, statut:null|'stock'|'refaire', q}]
+let filtre = "tout";
+
+async function charger(){
+  try{
+    const r = localStorage.getItem(CLE);
+    if(r){
+      const d = JSON.parse(r);
+      if(d && d.items) items = d.items;
+    }
+  }catch(e){}
+  if(!items.length){
+    items = DEPART.map((x,i)=>({ id:"d"+i, cat:x[0], nom:x[1], statut:null, q:0 }));
+    sauver();
+  }
+  construire();
+}
+
+let minuteur=null;
+function sauver(){
+  clearTimeout(minuteur);
+  minuteur=setTimeout(async ()=>{
+    try{ localStorage.setItem(CLE, JSON.stringify({items:items})); }catch(e){}
+  },300);
+}
+
+function construire(){
+  const main=document.getElementById("main");
+  main.innerHTML="";
+  let totStock=0, totRefaire=0;
+  items.forEach(it=>{
+    if(it.statut==="stock") totStock++;
+    if(it.statut==="refaire") totRefaire++;
+  });
+  document.getElementById("n-stock").textContent=totStock;
+  document.getElementById("n-refaire").textContent=totRefaire;
+
+  let rien=true;
+  CATS.forEach(cat=>{
+    const liste = items.filter(it=>it.cat===cat.id && (filtre==="tout" || it.statut===filtre));
+    if(!liste.length) return;
+    rien=false;
+    const nbRefaire = items.filter(it=>it.cat===cat.id && it.statut==="refaire").length;
+    const c=document.createElement("div");
+    c.className="categorie";
+    const badge = nbRefaire ? nbRefaire+" à refaire" : "ok";
+    c.innerHTML='<div class="cat-titre"><h2><span class="emoji">'+cat.emoji+'</span>'+cat.titre+'</h2><span class="etat'+(nbRefaire?'':' ok')+'">'+(nbRefaire?badge:'✓')+'</span></div>';
+    const ul=document.createElement("ul");
+    ul.className="items";
+    liste.forEach(it=>ul.appendChild(creerLigne(it)));
+    c.appendChild(ul);
+    main.appendChild(c);
+  });
+  if(rien){
+    const m=document.createElement("div");
+    m.className="vide-msg";
+    m.textContent = filtre==="refaire" ? "Rien à refaire, tout est bon ! 🎉" :
+                    filtre==="stock" ? "Rien en stock pour le moment." :
+                    "Aucun aliment — ajoute-en avec le bouton +";
+    main.appendChild(m);
+  }
+}
+
+function creerLigne(it){
+  const li=document.createElement("li");
+  li.className="item"+(it.statut==="refaire"?" est-refaire":"");
+  li.innerHTML=
+    '<div class="nom"></div>'+
+    (it.statut==="stock"
+      ? '<div class="qte"><button data-a="-">−</button><span class="val'+(it.q?'':' vide')+'">'+(it.q||'–')+'</span><button data-a="+">+</button></div>'
+      : '')+
+    '<div class="chips">'+
+      '<button class="chip stock'+(it.statut==="stock"?' actif':'')+'">En stock</button>'+
+      '<button class="chip refaire'+(it.statut==="refaire"?' actif':'')+'">À refaire</button>'+
+    '</div>'+
+    '<button class="suppr" title="Supprimer">✕</button>';
+  li.querySelector(".nom").textContent=it.nom;
+
+  li.querySelector(".chip.stock").onclick=()=>{
+    it.statut = (it.statut==="stock") ? null : "stock";
+    if(it.statut!=="stock") it.q=0;
+    construire(); sauver();
+  };
+  li.querySelector(".chip.refaire").onclick=()=>{
+    it.statut = (it.statut==="refaire") ? null : "refaire";
+    it.q=0;
+    construire(); sauver();
+  };
+  const qte=li.querySelector(".qte");
+  if(qte){
+    qte.querySelectorAll("button").forEach(b=>b.onclick=()=>{
+      it.q=Math.max(0,(it.q||0)+(b.dataset.a==="+"?1:-1));
+      if(it.q===0 && b.dataset.a==="-"){
+        // plus de portions -> proposer de passer en "à refaire"
+        if(confirm('Plus de "'+it.nom+'" — le passer en À refaire ?')){
+          it.statut="refaire";
+        }
+      }
+      construire(); sauver();
+    });
+  }
+  li.querySelector(".suppr").onclick=()=>{
+    if(confirm('Supprimer "'+it.nom+'" de la liste ?')){
+      items=items.filter(x=>x.id!==it.id);
+      construire(); sauver();
+    }
+  };
+  return li;
+}
+
+// Filtres
+document.querySelectorAll(".filtres button").forEach(b=>{
+  b.onclick=()=>{
+    filtre=b.dataset.f;
+    document.querySelectorAll(".filtres button").forEach(x=>x.classList.toggle("actif",x===b));
+    construire();
+  };
+});
+
+// Ajout
+const modalFond=document.getElementById("modal-fond");
+const selCat=document.getElementById("aj-cat");
+const champNom=document.getElementById("aj-nom");
+CATS.forEach(c=>{
+  const o=document.createElement("option");
+  o.value=c.id; o.textContent=c.emoji+" "+c.titre;
+  selCat.appendChild(o);
+});
+document.getElementById("fab").onclick=()=>{
+  champNom.value="";
+  modalFond.classList.add("ouvert");
+  setTimeout(()=>champNom.focus(),150);
+};
+document.getElementById("aj-annuler").onclick=()=>modalFond.classList.remove("ouvert");
+modalFond.onclick=(ev)=>{ if(ev.target===modalFond) modalFond.classList.remove("ouvert"); };
+document.getElementById("aj-valider").onclick=()=>{
+  const nom=champNom.value.trim();
+  if(!nom){ champNom.focus(); return; }
+  items.push({ id:"x"+Date.now(), cat:selCat.value, nom:nom, statut:"stock", q:0 });
+  modalFond.classList.remove("ouvert");
+  filtre="tout";
+  document.querySelectorAll(".filtres button").forEach(x=>x.classList.toggle("actif",x.dataset.f==="tout"));
+  construire(); sauver();
+};
+champNom.addEventListener("keydown",(ev)=>{ if(ev.key==="Enter") document.getElementById("aj-valider").click(); });
+
+charger();
+</script>
+</body>
+</html>
