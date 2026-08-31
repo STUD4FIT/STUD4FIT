@@ -1462,8 +1462,18 @@ function loadSuivi(){
     }
     // Show all mesures individually with edit button
     const clientIdx = document.getElementById('sel-suivi').value;
-    html_m += mesures.slice().reverse().map((m, revI) => {
-      const realI = mesures.length - 1 - revI;
+    // Trier les mesures par date chronologique
+    const mesuresSorted = mesures.slice().sort((a, b) => {
+      const parseDate = d => {
+        if(!d) return 0;
+        const parts = d.split(' ')[0].split('/');
+        if(parts.length !== 3) return 0;
+        return new Date(parts[2]+'-'+parts[1]+'-'+parts[0]).getTime();
+      };
+      return parseDate(a.date) - parseDate(b.date);
+    });
+    html_m += mesuresSorted.slice().reverse().map((m, revI) => {
+      const realI = mesuresSorted.length - 1 - revI;
       return '<div style="background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:.6rem;margin-bottom:6px">' +
         '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem">' +
           '<div style="font-size:12px;font-weight:600">' + m.date + '</div>' +
