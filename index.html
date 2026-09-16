@@ -2092,7 +2092,8 @@ function getTranche(age, sexe, obj){
   if(obj==='poids' && sexe==='femme'){
     if(age<35)return '25-35'; if(age<45)return '35-45'; if(age<55)return '45-55'; if(age<65)return '55-65'; return '65+';
   }
-  if(age<35)return sexe==='femme'?'25-35':'20-35'; if(age<45)return '35-45'; if(age<55)return '45-55'; if(age<65)return '55-65'; return '65+';
+  // Pour muscle et visceral : tranche 20-35 (pas 25-35)
+  if(age<35)return '20-35'; if(age<45)return '35-45'; if(age<55)return '45-55'; if(age<65)return '55-65'; return '65+';
 }
 function getSemIdx(s){ if(s<=2)return 0; if(s<=4)return 1; if(s<=6)return 2; return 3; }
 
